@@ -1,0 +1,45 @@
+xrun: 24.09-s004: (c) Copyright 1995-2024 Cadence Design Systems, Inc.
+TOOL:	xrun	24.09-s004: Started on Apr 26, 2026 at 08:44:22 EDT
+xrun
+	cpu.sv
+	-licqueue
+Recompiling... reason: file './cpu.sv' is newer than expected.
+	expected: Sun Apr 26 08:40:55 2026
+	actual:   Sun Apr 26 08:44:20 2026
+		Caching library 'worklib' ....... Done
+	Elaborating the design hierarchy:
+	Top level design units:
+		$unit_0x221e7f19
+		top
+        .pc_data(pf_addr_update), // need to figure out 
+                              |
+xmelab: *W,CUVMPW (./cpu.sv,41|30): port sizes differ in port connection(1/16) for the instance(top) .
+        .pc_out(address_bus)
+                          |
+xmelab: *W,CUVMPW (./cpu.sv,42|26): port sizes differ in port connection(12/16) for the instance(top) .
+	Building instance overlay tables: .................... Done
+	Building instance specific data structures.
+        .pc_data(pf_addr_update), // need to figure out 
+                              |
+xmelab: *W,CSINFI (./cpu.sv,41|30): implicit wire has no fanin (top.pf_addr_update).
+	Loading native compiled code:     .................... Done
+	Design hierarchy summary:
+		             Instances  Unique
+		Modules:             7       6
+		Registers:          41      39
+		Scalar wires:       13       -
+		Vectored wires:     31       -
+		Always blocks:       5       4
+		Initial blocks:      1       1
+		Cont. assignments:   0      11
+		Compilation units:   1       1
+	Writing initial simulation snapshot: worklib.top:sv
+Queuing for one of the following license(s) -
+  Xcelium_Single_Core (24.00) 1 copies ...
+Got license - Xcelium_Single_Core (24.00)
+Loading snapshot worklib.top:sv .................... Done
+xcelium> source /hwnet/cadence/xcelium/xcelium2024.09_s004/tools/xcelium/files/xmsimrc
+xcelium> run
+xmsim: *W,RNQUIE: Simulation is complete.
+xcelium> exit
+TOOL:	xrun	24.09-s004: Exiting on Apr 26, 2026 at 08:45:23 EDT  (total: 00:01:01)

@@ -1,0 +1,12 @@
+cpu_enums.sv
+/u/pancholv/Desktop/sv_uvm/cpu/cpu_enums.sv
+cpu_instruction_decoder.sv
+/u/pancholv/Desktop/sv_uvm/cpu/cpu_instruction_decoder.sv
+cpu_memory.sv
+/u/pancholv/Desktop/sv_uvm/cpu/cpu_memory.sv
+cpu_registers.sv
+/u/pancholv/Desktop/sv_uvm/cpu/cpu_registers.sv
+cpu_alu.sv
+/u/pancholv/Desktop/sv_uvm/cpu/cpu_alu.sv
+cpu_program_counter.sv
+/u/pancholv/Desktop/sv_uvm/cpu/cpu_program_counter.sv
