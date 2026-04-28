@@ -21,6 +21,7 @@ module top;
     reg[7:0] register_wr_data;
     reg[7:0] o_register_wr_data;
     reg reg_bus_ctrl;
+    reg reg_bus_direct;
     reg status_bus_ctrl;
     reg[7:0] status_bus;
     cpu_opcodes_e opcode;
@@ -32,8 +33,10 @@ module top;
     reg alu_carry;
     reg alu_zero;
     reg data_mem_wr_en;
+    reg data_mem_wr_ind_en;
     reg[7:0] data_mem_data;
     reg[7:0] data_mem_out;
+    reg[15:0] reg_indirect_address;
     reg[15:0] data_mem_address;
 
     // tb signals
@@ -83,7 +86,7 @@ module top;
         .status_data(status_bus), // need to figure out
         .dest_data(reg_a), // need to figure out
         .src_data(reg_b), // need to figure out
-        .data_mem_addr(data_mem_address)
+        .data_mem_addr(reg_indirect_address)
     );
     
     alu u_alu(
@@ -100,16 +103,18 @@ module top;
         .rst_n(rst_n),
         .opcode(opcode),
         .reg_write_en(register_wr_en),
-        //.reg_write_data(register_wr_data),
-        //.o_reg_write_data(o_register_wr_data),
         .reg_bus_ctrl(reg_bus_ctrl),
+        .reg_bus_direct(reg_bus_direct),
         .status_flag_update(status_bus_ctrl),
+        .data_mem_wr_en(data_mem_wr_en),
+        .data_mem_wr_ind_en(data_mem_wr_ind_en),
         .halt_en()
     );
 
     assign status_bus = {6'b0, alu_carry, alu_zero};
-    assign register_wr_data = (reg_bus_ctrl===1) ? immidiate_bits : alu_result;
-
+    assign register_wr_data = (reg_bus_ctrl===1) ? ((reg_bus_direct===0) ? data_mem_out : immidiate_bits) : alu_result;
+    assign data_mem_data = reg_a;
+    assign data_mem_address = data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits);
 
     // clk and reset initialization
     // temporary

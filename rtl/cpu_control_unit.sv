@@ -3,11 +3,12 @@ module control_unit(
     input logic rst_n,
     input cpu_opcodes_e opcode,
     output logic reg_write_en,
-    //input logic[7:0] reg_write_data,
-    //output logic[7:0] o_reg_write_data,
     output logic halt_en,
     output logic reg_bus_ctrl,
-    output logic status_flag_update
+    output logic reg_bus_direct,
+    output logic status_flag_update,
+    output logic data_mem_wr_en,
+    output logic data_mem_wr_ind_en
 );
     cpu_states_e cpu_state;
     always_ff @(posedge clk or negedge rst_n) begin
@@ -24,17 +25,39 @@ module control_unit(
     always_comb begin
         reg_write_en = 0;
         halt_en = 0;
-        //o_reg_write_data = reg_write_data;
         reg_bus_ctrl = 0;
+        reg_bus_direct = 0;
         status_flag_update = 0;
+        data_mem_wr_en = 0;
+        data_mem_wr_ind_en = 0;
         case (opcode)
             LOAD_IMM: begin
                 reg_write_en = 1;
                 reg_bus_ctrl = 1;
+                reg_bus_direct = 1;
+            end
+            LOAD_DIR: begin
+                reg_write_en = 1;
+                reg_bus_ctrl = 1;
+                reg_bus_direct = 0;
+                data_mem_wr_ind_en = 0;
+            end
+            LOAD_IND: begin
+                reg_write_en = 1;
+                reg_bus_ctrl = 1;
+                reg_bus_direct = 0;
+                data_mem_wr_ind_en = 1;
             end
             ADD, SUB: begin
                 reg_write_en = 1;
                 status_flag_update = 1;
+            end
+            STORE_DIR: begin
+                data_mem_wr_en = 1;
+            end
+            STORE_IND: begin
+                data_mem_wr_en = 1;
+                data_mem_wr_ind_en = 1;
             end
             HALT: begin
                 halt_en = 1;

@@ -5,6 +5,7 @@ from datetime import datetime
 script_path = os.path.dirname(os.path.realpath(__file__))
 project_dir = os.path.dirname(script_path)
 results_dir = os.path.join(script_path, 'sim_data')
+svcf_path = os.path.join(project_dir, 'cpu.svcf')
 os.makedirs(results_dir, exist_ok=True)
 
 # keep this on for Xcelium Simulator
@@ -111,7 +112,7 @@ def main():
     if args.no_compile:
         command = f'xrun -xmlibdirname {compile_file_path} -R -input {shm_path} +UVM_TESTNAME=cpu_base_test_c +HEX_FILE=\"{selected_hex}\"'
     if args.waves:
-        command += ' -access +rwc -gui &'
+        command += f' -access +rwc -gui &'
     _, output = terminal(command)
     
 if __name__ == '__main__':
