@@ -16,6 +16,6 @@ module alu(
     end
 
     assign result = lcl_result[7:0];
-    assign carry = lcl_result[0];
+    assign carry = lcl_result[8];
     assign zero = (lcl_result[7:0] == 0);
 endmodule

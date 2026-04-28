@@ -1,9 +1,7 @@
 import os, subprocess, re, sys, argparse
-
 dbg_mode = False
 script_path = os.path.dirname(__file__)
 compile_check = True
-
 
 def get_args():
     parser = argparse.ArgumentParser(description="Script to automate git version control process..")
@@ -14,6 +12,7 @@ def get_args():
     parser.add_argument('-cc', '--compile_check', action='store_true', help='push after compilation check..')
     parser.add_argument('-ncc', '--no_compile_check', action='store_true', help='push without compilation check..')
     parser.add_argument('-dbg', '--debug', action='store_true', help='debug mode enable.')
+    parser.add_argument('-ig', '--ignore', nargs='+', help='Untrack files/directories and add them to .gitignore.')
     return parser.parse_args()
 
 def clean_terminal():
@@ -26,7 +25,7 @@ def terminal(command, print_output=False, execute_anyways=True):
         return None, None, None
     print(f' > {command}')
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    output, error_output = [], []
+    output, error_output = [] , []
     for stdout_line in process.stdout:
         if print_output:
             print(stdout_line, end="")
@@ -109,13 +108,12 @@ def extract_changed_files():
     modified_files = re.findall(r'\s+modified:\s+(.*)', git_status)
     deleted_files = re.findall(r'\s+deleted:\s+(.*)', git_status)
     untracked_files = re.findall(r'\n\t(.*)', git_status.split('Untracked files:')[1].split('\n\n')[0]) if 'Untracked files:' in git_status else []
-    renamed_files = re.findall(r'\s+renamed:\s+(.*)', git_status)
+    renamed_files = [f.split(' -> ')[-1] for f in re.findall(r'\s+renamed:\s+(.*)', git_status)]
     status_dict['modified'].extend(modified_files)
     status_dict['deleted'].extend(deleted_files)
     status_dict['untracked'].extend(untracked_files)
     status_dict['renamed'].extend(renamed_files)
     return status_dict
-
 
 def display_and_return_modified_list(status):
     modified_list = []
@@ -131,12 +129,11 @@ def display_and_return_modified_list(status):
         print(f'------------------------------------------------\n')
     return modified_list
 
-
 def check_compilation_status():
     print(f'\nChecking for compilation..')
     sim_path = os.path.join(script_path, 'sim')
     _, _, _ =terminal(f"python3 {os.path.join(sim_path, 'run.py')} --compile")
-    compile_log = os.path.join(sim_path, 'xrun.log') # FIXME: will not work with other simulators..
+    compile_log = os.path.join(sim_path, 'xrun.log')
     if os.path.exists(compile_log):
         with open(compile_log, 'r') as file:
             data = file.read()
@@ -144,17 +141,24 @@ def check_compilation_status():
                 return False
     return True
 
-
 args = get_args()
 dbg_mode = args.debug or dbg_mode
 compile_check = True if args.compile_check else compile_check
 compile_check = False if args.no_compile_check else compile_check
 clean_terminal()
 
+if args.ignore:
+    for item in args.ignore:
+        terminal(f"git rm -r --cached {item}")
+        with open(".gitignore", "a") as f:
+            f.write(f"{item}\n")
+    terminal("git add .gitignore")
+    if not (args.push or args.push_all):
+        sys.exit(0)
 
+modified_list = []
 status = extract_changed_files()
 if status: modified_list = display_and_return_modified_list(status)
-
 
 if args.reset:
     reset_to_latest_branch()
@@ -176,4 +180,3 @@ if args.push or args.push_all:
     _, _, _ = terminal(f"git commit --allow-empty-message -m \"{commit_msg}\"", execute_anyways=False)
     print('\nPushing changes..')
     _, _, _ = terminal('git push origin main', execute_anyways=False)
-

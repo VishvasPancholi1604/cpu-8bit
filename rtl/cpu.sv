@@ -20,6 +20,9 @@ module top;
     reg register_wr_en;
     reg[7:0] register_wr_data;
     reg[7:0] o_register_wr_data;
+    reg reg_bus_ctrl;
+    reg status_bus_ctrl;
+    reg[7:0] status_bus;
     cpu_opcodes_e opcode;
     cpu_registers_e src_reg_addr;
     cpu_registers_e dest_reg_addr;
@@ -73,9 +76,11 @@ module top;
     registers u_cpu_registers(
         .clk(clk),
         .wr_en(register_wr_en),  // need to figure out
+        .status_wr_en(status_bus_ctrl),
         .src_addr(src_reg_addr), 
         .dest_addr(dest_reg_addr),
-        .write_data(o_register_wr_data), // need to figure out
+        .write_data(register_wr_data), // need to figure out
+        .status_data(status_bus), // need to figure out
         .dest_data(reg_a), // need to figure out
         .src_data(reg_b), // need to figure out
         .data_mem_addr(data_mem_address)
@@ -95,19 +100,24 @@ module top;
         .rst_n(rst_n),
         .opcode(opcode),
         .reg_write_en(register_wr_en),
-        .reg_write_data(register_wr_data),
-        .o_reg_write_data(o_register_wr_data),
+        //.reg_write_data(register_wr_data),
+        //.o_reg_write_data(o_register_wr_data),
+        .reg_bus_ctrl(reg_bus_ctrl),
+        .status_flag_update(status_bus_ctrl),
         .halt_en()
     );
 
-    assign register_wr_data = immidiate_bits;
+    assign status_bus = {6'b0, alu_carry, alu_zero};
+    assign register_wr_data = (reg_bus_ctrl===1) ? immidiate_bits : alu_result;
 
 
     // clk and reset initialization
     // temporary
     always #5 clk = ~clk;
     initial begin
-        $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/load_imm_basic.hex", u_instruction_memory.memory);
+        // $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/load_imm_basic.hex", u_instruction_memory.memory);
+        // $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/add_basic.hex", u_instruction_memory.memory);
+        $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/sub_basic.hex", u_instruction_memory.memory);
         #1 rst_n = 1;
         count_en = 1;
         for(int i=0;i<10; i++) begin
