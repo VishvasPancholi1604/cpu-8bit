@@ -2,6 +2,7 @@ module control_unit(
     input logic clk,
     input logic rst_n,
     input cpu_opcodes_e opcode,
+    input cpu_alu_operation_e alu_operation,
     output logic reg_write_en,
     output logic halt_en,
     output logic reg_bus_ctrl,
@@ -10,6 +11,7 @@ module control_unit(
     output logic data_mem_wr_en,
     output logic data_mem_wr_ind_en
 );
+    // DEPRICATED
     cpu_states_e cpu_state;
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
@@ -22,6 +24,7 @@ module control_unit(
             endcase
         end
     end
+
     always_comb begin
         reg_write_en = 0;
         halt_en = 0;
@@ -48,8 +51,8 @@ module control_unit(
                 reg_bus_direct = 0;
                 data_mem_wr_ind_en = 1;
             end
-            ADD, SUB: begin
-                reg_write_en = 1;
+            ALU_REG: begin
+                reg_write_en = (alu_operation != CMP) ? 1 : 0; // no need to update dest register for comparision
                 status_flag_update = 1;
             end
             STORE_DIR: begin

@@ -93,6 +93,7 @@ module top;
         .a(reg_a),
         .b(reg_b),
         .opcode(opcode),
+        .alu_operation(cpu_alu_operation_e'(instruction[3:0])),
         .result(alu_result),
         .carry(alu_carry),
         .zero(alu_zero)
@@ -102,6 +103,7 @@ module top;
         .clk(clk),
         .rst_n(rst_n),
         .opcode(opcode),
+        .alu_operation(cpu_alu_operation_e'(instruction[3:0])),
         .reg_write_en(register_wr_en),
         .reg_bus_ctrl(reg_bus_ctrl),
         .reg_bus_direct(reg_bus_direct),
