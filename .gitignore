@@ -1,3 +1,4 @@
 -e xcelium.d/
 xrun.history
 xrun.log
+sim/sim_data/
