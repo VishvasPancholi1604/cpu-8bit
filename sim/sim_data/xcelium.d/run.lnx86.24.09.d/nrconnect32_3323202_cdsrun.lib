@@ -1,0 +1,2 @@
+SOFTINCLUDE /hwnet/cadence/xcelium/xcelium2024.09_s004/tools/inca/files/cds.lib
+define worklib ../worklib

@@ -7,6 +7,7 @@ module program_counter(
     output logic[15:0] pc_out 
 );
     reg[15:0] pc;
+    assign pc_out = pc;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin

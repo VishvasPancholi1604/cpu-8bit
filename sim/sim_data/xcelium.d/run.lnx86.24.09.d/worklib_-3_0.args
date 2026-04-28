@@ -1,0 +1,25 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-RUNMODE
+-DEFINE
+UVM_REPORT_DISABLE_FILE
+-I_INCDIR
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/sv/src
+-DEFINE
+USE_PARAMETERIZED_WRAPPER
+-I_INCDIR
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/additions/sv
+-UPDATE
+-CDSLIB
+./xcelium.d/run.lnx86.24.09.d/cdsrun.lib
+-HDLVAR
+./xcelium.d/run.lnx86.24.09.d/hdlrun.var
+-work
+worklib
+-UVMNOSINGLESTEP
+-define
+UVM_PLI
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/sv/src/uvm_pkg.sv
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/additions/sv/cdns_uvm_pkg.sv

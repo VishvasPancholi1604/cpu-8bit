@@ -4,18 +4,22 @@
 `include "cpu_registers.sv"
 `include "cpu_alu.sv"
 `include "cpu_program_counter.sv"
+`include "cpu_control_unit.sv"
 
 module top;
     bit clk;
-    bit rst_n=1;
+    bit rst_n;
     reg       load_en;
     reg       count_en;
     reg[15:0] pc_addr_update;
 
     // global bus
     cpu_states_e cpu_state;
-    reg[11:0] address_bus;
-    reg[15:0] instruction;
+    wire[15:0] address_bus;
+    wire[15:0] instruction;
+    reg register_wr_en;
+    reg[7:0] register_wr_data;
+    reg[7:0] o_register_wr_data;
     cpu_opcodes_e opcode;
     cpu_registers_e src_reg_addr;
     cpu_registers_e dest_reg_addr;
@@ -37,15 +41,15 @@ module top;
         .clk(clk),
         .rst_n(rst_n),
         .load_en(load_en), // need to figure out 
-        .count_en(count_en),// need to figure out 
-        .pc_data(pf_addr_update), // need to figure out 
+        .count_en(count_en), // need to figure out 
+        .pc_data(pc_addr_update), // need to figure out 
         .pc_out(address_bus)
     );
 
-    cpu_memory#(.MEM_WIDTH(16), .MEM_LENGTH(4096)) u_instruction_memory(
+    cpu_memory#(.MEM_WIDTH(16), .MEM_LENGTH(65536)) u_instruction_memory(
         .clk(clk),
         .addr(address_bus),
-        .wr_en(instr_mem_wr_en),   // need to figure out
+        .wr_en(instr_mem_wr_en),  // need to figure out
         .wr_data(instr_mem_data), // need to figure out
         .data(instruction)
     );
@@ -68,10 +72,10 @@ module top;
 
     registers u_cpu_registers(
         .clk(clk),
-        .wr_en(),  // need to figure out
+        .wr_en(register_wr_en),  // need to figure out
         .src_addr(src_reg_addr), 
         .dest_addr(dest_reg_addr),
-        .write_data(), // need to figure out
+        .write_data(o_register_wr_data), // need to figure out
         .dest_data(reg_a), // need to figure out
         .src_data(reg_b), // need to figure out
         .data_mem_addr(data_mem_address)
@@ -85,4 +89,30 @@ module top;
         .carry(alu_carry),
         .zero(alu_zero)
     );
+
+    control_unit u_ctrl(
+        .clk(clk),
+        .rst_n(rst_n),
+        .opcode(opcode),
+        .reg_write_en(register_wr_en),
+        .reg_write_data(register_wr_data),
+        .o_reg_write_data(o_register_wr_data),
+        .halt_en()
+    );
+
+    assign register_wr_data = immidiate_bits;
+
+
+    // clk and reset initialization
+    // temporary
+    always #5 clk = ~clk;
+    initial begin
+        $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/load_imm_basic.hex", u_instruction_memory.memory);
+        #1 rst_n = 1;
+        count_en = 1;
+        for(int i=0;i<10; i++) begin
+            $display("u_instruction_memory.memory[%0d] = 0x%0h", i, u_instruction_memory.memory[i]);
+        end
+        #70 $finish();
+    end
 endmodule

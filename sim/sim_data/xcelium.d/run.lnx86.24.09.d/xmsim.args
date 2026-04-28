@@ -1,0 +1,38 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-INPUT
+"@source /hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/additions/sv/files/tcl/uvm_sim.tcl"
++UVM_NO_RELNOTES
++define+UVM_REPORT_DISABLE_FILE
++access+r
+-uvmhome
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d
+-sv_lib
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/additions/sv/lib/libuvmpli.so
+-LICQUEUE
+-LICQUEUE
+-INPUT
+/u/pancholv/Desktop/sv_uvm/cpu/sim/shm.tcl
++UVM_TESTNAME=cpu_base_test_c
+-gui
+-MESSAGES
+-SV_LIB
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/additions/sv/lib/libuvmdpi.so
++EMGRLOG
+xrun.log
+-XLSTIME
+1777376664
+-XLKEEP
+-XLMODE
+./xcelium.d/run.lnx86.24.09.d
+-RUNMODE
+-CDSLIB
+./xcelium.d/run.lnx86.24.09.d/cds.lib
+-HDLVAR
+./xcelium.d/run.lnx86.24.09.d/hdl.var
+-XLNAME
+xrun
+-XLVERSION
+"TOOL:	xrun	24.09-s004"

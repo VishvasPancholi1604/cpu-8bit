@@ -1,0 +1,32 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-XLMODE
+./xcelium.d/run.lnx86.24.09.d
+-RUNMODE
+-UVMNOSINGLESTEP
+-define
+UVM_PLI
+/u/pancholv/Desktop/sv_uvm/cpu/rtl/cpu.sv
+-INCDIR
+/u/pancholv/Desktop/sv_uvm/cpu/rtl
+-DEFINE
+UVM_REPORT_DISABLE_FILE
+-CDSLIB
+./xcelium.d/run.lnx86.24.09.d/cdsrun.lib
+-HDLVAR
+./xcelium.d/run.lnx86.24.09.d/hdlrun.var
+-I_INCDIR
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/sv/src
+-DEFINE
+USE_PARAMETERIZED_WRAPPER
+-I_INCDIR
+/hwnet/cadence/xcelium/xcelium2024.09_s004/tools/methodology/UVM/CDNS-1.1d/additions/sv
+-no_analogsolver
+-MESSAGES
+-UPDATE
+-XLLIBSTORE
+./xcelium.d/run.lnx86.24.09.d/xllibs
+-ALLOWUNBOUND
+-ENABLEOIGW
