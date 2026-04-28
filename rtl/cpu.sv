@@ -114,15 +114,20 @@ module top;
     // clk and reset initialization
     // temporary
     always #5 clk = ~clk;
+    string hex_file_path;
+
     initial begin
-        // $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/load_imm_basic.hex", u_instruction_memory.memory);
-        // $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/add_basic.hex", u_instruction_memory.memory);
-        $readmemh("/u/pancholv/Desktop/sv_uvm/cpu/sub_basic.hex", u_instruction_memory.memory);
-        #1 rst_n = 1;
+        if (!$value$plusargs("HEX_FILE=%s", hex_file_path)) begin
+            $display("ERROR: +HEX_FILE=<path> argument not provided.");
+            $finish;
+        end
+
+        $display("Loading memory from: %s", hex_file_path);
+        $readmemh(hex_file_path, u_instruction_memory.memory);        #1 rst_n = 1;
         count_en = 1;
         for(int i=0;i<10; i++) begin
             $display("u_instruction_memory.memory[%0d] = 0x%0h", i, u_instruction_memory.memory[i]);
         end
-        #70 $finish();
+        #100 $finish();
     end
 endmodule
