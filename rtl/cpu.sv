@@ -119,7 +119,7 @@ module top;
     assign register_wr_data = (reg_bus_ctrl===1) ? ((reg_bus_direct===0) ? data_mem_out : immidiate_bits) : alu_result;
     assign data_mem_data = reg_a;
     assign data_mem_address = data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits);
-    assign pc_addr_update = (instruction[8]) ? reg_indirect_address : immidiate_bits;
+    assign pc_addr_update = (instruction[11]) ? reg_indirect_address : immidiate_bits;
 
     // clk and reset initialization
     // temporary
