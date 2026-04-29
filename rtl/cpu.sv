@@ -105,6 +105,8 @@ module top;
         .rst_n(rst_n),
         .opcode(opcode),
         .alu_operation(cpu_alu_operation_e'(instruction[3:0])),
+        .jmp_operation(cpu_jmp_type_e'(instruction[9:8])),
+        .status(status_bus),
         .reg_write_en(register_wr_en),
         .reg_bus_ctrl(reg_bus_ctrl),
         .reg_bus_direct(reg_bus_direct),
@@ -138,6 +140,6 @@ module top;
         for(int i=0;i<10; i++) begin
             $display("u_instruction_memory.memory[%0d] = 0x%0h", i, u_instruction_memory.memory[i]);
         end
-        #100 $finish();
+        #350 $finish();
     end
 endmodule

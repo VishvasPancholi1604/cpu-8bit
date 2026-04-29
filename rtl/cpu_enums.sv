@@ -29,6 +29,13 @@ typedef enum bit[3:0] {
 } cpu_alu_operation_e;
 
 typedef enum bit[1:0] {
+    JZ  = 2'b00, // used for IF conditions
+    JNZ = 2'b01, // used for IF conditions
+    JC  = 2'b10, // used in FOR loop
+    JNC = 2'b11 // used for loop
+} cpu_jmp_type_e;
+
+typedef enum bit[1:0] {
     REG0 = 2'b00,
     REG1 = 2'b01,
     REG2 = 2'b10,

@@ -3,6 +3,8 @@ module control_unit(
     input logic rst_n,
     input cpu_opcodes_e opcode,
     input cpu_alu_operation_e alu_operation,
+    input cpu_jmp_type_e jmp_operation,
+    input logic[7:0] status,
     output logic reg_write_en,
     output logic halt_en,
     output logic reg_bus_ctrl,
@@ -66,6 +68,14 @@ module control_unit(
             end
             JMP: begin
                 pc_load_en = 1;
+            end
+            BCC: begin
+                case (jmp_operation)
+                    JZ  : pc_load_en = (status[0]===0);
+                    JNZ : pc_load_en = (status[0]!==0);
+                    JC  : pc_load_en = (status[1]===0);
+                    JNC : pc_load_en = (status[1]!==0);
+                endcase
             end
             HALT: begin
                 halt_en = 1;
