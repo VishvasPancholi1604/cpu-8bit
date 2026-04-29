@@ -8,7 +8,7 @@ typedef enum bit[3:0] {
     STORE_DIR = 4'b0110, // IMPLEMENTED
     STORE_IND = 4'b0111, // IMPLEMENTED
     LOAD_SP   = 4'b1000,
-    JMP       = 4'b1001,
+    JMP       = 4'b1001, // IMPLEMENTED
     BCC       = 4'b1010,  // branch conditions
     CALL      = 4'b1011,
     RET       = 4'b1100,

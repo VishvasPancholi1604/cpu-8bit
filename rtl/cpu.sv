@@ -38,6 +38,7 @@ module top;
     reg[7:0] data_mem_out;
     reg[15:0] reg_indirect_address;
     reg[15:0] data_mem_address;
+    reg pc_load_en;
 
     // tb signals
     reg instr_mem_wr_en;
@@ -110,6 +111,7 @@ module top;
         .status_flag_update(status_bus_ctrl),
         .data_mem_wr_en(data_mem_wr_en),
         .data_mem_wr_ind_en(data_mem_wr_ind_en),
+        .pc_load_en(load_en),
         .halt_en()
     );
 
@@ -117,6 +119,7 @@ module top;
     assign register_wr_data = (reg_bus_ctrl===1) ? ((reg_bus_direct===0) ? data_mem_out : immidiate_bits) : alu_result;
     assign data_mem_data = reg_a;
     assign data_mem_address = data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits);
+    assign pc_addr_update = (instruction[8]) ? reg_indirect_address : immidiate_bits;
 
     // clk and reset initialization
     // temporary
