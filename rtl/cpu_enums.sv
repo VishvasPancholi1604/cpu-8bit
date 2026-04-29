@@ -1,6 +1,6 @@
 typedef enum bit[3:0] {
     NOP       = 4'b0000,
-    ALU_REG   = 4'b0001,
+    ALU_REG   = 4'b0001, // IMPLEMENTED
     RESERVED  = 4'b0010, // to preserve old asm hex files for now..
     LOAD_IMM  = 4'b0011, // IMPLEMENTED
     LOAD_DIR  = 4'b0100, // IMPLEMENTED 
