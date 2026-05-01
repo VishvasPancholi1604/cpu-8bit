@@ -40,6 +40,11 @@ module top;
     reg[15:0] data_mem_address;
     reg pc_load_en;
 
+    // stack related variables
+    reg[15:0] stack_pointer;
+    reg load_stack_en;
+    reg decr_stack, incr_stack;
+
     // tb signals
     reg instr_mem_wr_en;
     reg[15:0] instr_mem_data;
@@ -114,14 +119,37 @@ module top;
         .data_mem_wr_en(data_mem_wr_en),
         .data_mem_wr_ind_en(data_mem_wr_ind_en),
         .pc_load_en(load_en),
+        .load_stack_en(load_stack_en),
+        .decr_stack(decr_stack),
+        .incr_stack(incr_stack),
         .halt_en()
     );
 
     assign status_bus = {6'b0, alu_carry, alu_zero};
     assign register_wr_data = (reg_bus_ctrl===1) ? ((reg_bus_direct===0) ? data_mem_out : immidiate_bits) : alu_result;
     assign data_mem_data = reg_a;
-    assign data_mem_address = data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits);
+    assign data_mem_address = (decr_stack===1) ? (stack_pointer-1) : ((incr_stack===1) ? (stack_pointer) : (data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits)));
     assign pc_addr_update = (instruction[11]) ? reg_indirect_address : immidiate_bits;
+
+    always_ff @(posedge clk or negedge rst_n) begin : stack_process_always
+        if(!rst_n) begin
+            stack_pointer <= `STACK_PTR_HW_RST_VAL;
+        end else begin
+            if(load_stack_en) begin
+                if(instruction[11]) begin
+                    stack_pointer <= reg_indirect_address;
+                end else begin
+                    stack_pointer <= {8'b0, immidiate_bits};
+                end
+            end
+            if(decr_stack) begin
+                stack_pointer <= stack_pointer-1;
+            end
+            if(incr_stack) begin
+                stack_pointer <= stack_pointer+1;
+            end
+        end
+    end
 
     // clk and reset initialization
     // temporary

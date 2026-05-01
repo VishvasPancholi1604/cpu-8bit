@@ -12,7 +12,10 @@ module control_unit(
     output logic status_flag_update,
     output logic data_mem_wr_en,
     output logic data_mem_wr_ind_en,
-    output logic pc_load_en
+    output logic pc_load_en,
+    output logic load_stack_en,
+    output logic decr_stack,
+    output logic incr_stack
 );
     // DEPRICATED
     cpu_states_e cpu_state;
@@ -37,6 +40,9 @@ module control_unit(
         data_mem_wr_en = 0;
         data_mem_wr_ind_en = 0;
         pc_load_en = 0;
+        load_stack_en = 0;
+        decr_stack = 0;
+        incr_stack = 0;
         case (opcode)
             LOAD_IMM: begin
                 reg_write_en = 1;
@@ -76,6 +82,22 @@ module control_unit(
                     JC  : pc_load_en = (status[1]===0);
                     JNC : pc_load_en = (status[1]!==0);
                 endcase
+            end
+            LOAD_SP: begin
+                load_stack_en = 1;
+            end
+            PUSH: begin
+                decr_stack = 1;
+                data_mem_wr_en = 1;
+            end
+            POP: begin
+                incr_stack = 1;
+                data_mem_wr_en = 1;
+                reg_write_en = 1;
+                reg_bus_ctrl = 1;
+                reg_bus_direct = 0;
+            end
+            CALL: begin
             end
             HALT: begin
                 halt_en = 1;

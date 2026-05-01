@@ -1,3 +1,5 @@
+`define STACK_PTR_HW_RST_VAL 'hFFFF
+
 typedef enum bit[3:0] {
     NOP       = 4'b0000,
     ALU_REG   = 4'b0001, // IMPLEMENTED
@@ -9,7 +11,7 @@ typedef enum bit[3:0] {
     STORE_IND = 4'b0111, // IMPLEMENTED
     LOAD_SP   = 4'b1000,
     JMP       = 4'b1001, // IMPLEMENTED
-    BCC       = 4'b1010,  // branch conditions
+    BCC       = 4'b1010,  // IMPLEMENTED
     CALL      = 4'b1011,
     RET       = 4'b1100,
     PUSH      = 4'b1101,
