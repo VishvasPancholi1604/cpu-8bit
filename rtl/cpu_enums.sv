@@ -44,9 +44,13 @@ typedef enum bit[1:0] {
     REG3 = 2'b11
 } cpu_registers_e;
 
-typedef enum bit[1:0] {
-    CPU_IDLE,
-    CPU_HALT,
-    CPU_ACTIVE,
-    CPU_RESET
+typedef enum bit[2:0] {
+    FETCH   = 3'b000,
+    DECODE  = 3'b001,
+    EXECUTE = 3'b010,
+    CALL_HI = 3'b011,
+    CALL_LO = 3'b100,
+    RET_HI  = 3'b101,
+    RET_LO  = 3'b110,
+    HALTED  = 3'b111
 } cpu_states_e;

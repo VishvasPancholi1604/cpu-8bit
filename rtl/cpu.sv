@@ -4,12 +4,14 @@ module cpu(
 );
     reg       load_en;
     reg       count_en;
+    reg       ir_write_en; 
+    reg[15:0] instruction_register;
     reg[15:0] pc_addr_update;
 
     // global bus
     cpu_states_e cpu_state;
     wire[15:0] address_bus;
-    wire[15:0] instruction;
+    reg[15:0] instruction;
     reg register_wr_en;
     reg[7:0] register_wr_data;
     reg[7:0] o_register_wr_data;
@@ -68,7 +70,7 @@ module cpu(
     );
 
     instruction_decoder u_instr_decode(
-        .instruction(instruction),
+        .instruction(instruction_register),
         .opcode(opcode),
         .src_reg(src_reg_addr),
         .dest_reg(dest_reg_addr),
@@ -92,7 +94,7 @@ module cpu(
         .a(reg_a),
         .b(reg_b),
         .opcode(opcode),
-        .alu_operation(cpu_alu_operation_e'(instruction[3:0])),
+        .alu_operation(cpu_alu_operation_e'(instruction_register[3:0])),
         .result(alu_result),
         .carry(alu_carry),
         .zero(alu_zero)
@@ -102,9 +104,10 @@ module cpu(
         .clk(clk),
         .rst_n(rst_n),
         .count_en(count_en),
+        .ir_write_en(ir_write_en),
         .opcode(opcode),
-        .alu_operation(cpu_alu_operation_e'(instruction[3:0])),
-        .jmp_operation(cpu_jmp_type_e'(instruction[9:8])),
+        .alu_operation(cpu_alu_operation_e'(instruction_register[3:0])),
+        .jmp_operation(cpu_jmp_type_e'(instruction_register[9:8])),
         .status(status_bus),
         .reg_write_en(register_wr_en),
         .reg_bus_ctrl(reg_bus_ctrl),
@@ -123,14 +126,17 @@ module cpu(
     assign register_wr_data = (reg_bus_ctrl===1) ? ((reg_bus_direct===0) ? data_mem_out : immidiate_bits) : alu_result;
     assign data_mem_data = reg_a;
     assign data_mem_address = (decr_stack===1) ? (stack_pointer-1) : ((incr_stack===1) ? (stack_pointer) : (data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits)));
-    assign pc_addr_update = (instruction[11]) ? reg_indirect_address : immidiate_bits;
+    assign pc_addr_update = (instruction_register[11]) ? reg_indirect_address : immidiate_bits;
 
-    always_ff @(posedge clk or negedge rst_n) begin : stack_process_always
+    always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             stack_pointer <= `STACK_PTR_HW_RST_VAL;
         end else begin
+            if(ir_write_en) begin
+                instruction_register <= instruction;
+            end
             if(load_stack_en) begin
-                if(instruction[11]) begin
+                if(instruction_register[11]) begin
                     stack_pointer <= reg_indirect_address;
                 end else begin
                     stack_pointer <= {8'b0, immidiate_bits};
