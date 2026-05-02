@@ -2,7 +2,6 @@ import os, subprocess, re, sys, argparse
 dbg_mode = False
 script_path = os.path.dirname(__file__)
 compile_check = True
-
 def get_args():
     parser = argparse.ArgumentParser(description="Script to automate git version control process..")
     parser.add_argument('-r', '--reset', action='store_true', help="Reset the working directory to the latest branch.")
@@ -14,10 +13,8 @@ def get_args():
     parser.add_argument('-dbg', '--debug', action='store_true', help='debug mode enable.')
     parser.add_argument('-ig', '--ignore', nargs='+', help='Untrack files/directories and add them to .gitignore.')
     return parser.parse_args()
-
 def clean_terminal():
     print("\033[2J\033[H", end="")
-
 def terminal(command, print_output=False, execute_anyways=True):
     if dbg_mode and not execute_anyways:
         print(f' > {command}')
@@ -36,7 +33,6 @@ def terminal(command, print_output=False, execute_anyways=True):
         error_output.append(stderr_line)
     process.wait()
     return process.returncode, ''.join(output), ''.join(error_output)
-
 def select_elements_from_list(items):
     if not items:
         print("[*ERROR] The input list is empty.")
@@ -76,7 +72,6 @@ def select_elements_from_list(items):
                 print(f"[*ERROR] Invalid index: {part}")
                 return []
     return [items[i] for i in sorted(selected_indices)]
-
 def reset_to_latest_branch():
     print(f'Moving to the Latest branch.. ')
     commands = [
@@ -92,17 +87,16 @@ def reset_to_latest_branch():
     if ret != 0:
         print("[ERROR] Failed to get current branch.")
         return
-    ret, _, err = terminal(f'git reset --hard origin/{branch}')
+    ret, _, err = terminal(f'git reset --hard origin/{branch.strip()}')
     if ret != 0:
         print(f"[ERROR] {err}")
         return
     print("[SUCCESS] Reset to the latest branch state.")
-
 def extract_changed_files():
     print(f'Checking for updated files..')
     _, git_status, _= terminal('git fetch && git status')
-    if 'Your branch is up to date' not in git_status:
-        print(f'[*ERROR] Your branch is not up to date with the remote. Please pull the latest changes.')
+    if 'branch is behind' in git_status or 'have diverged' in git_status:
+        print(f'[*ERROR] Your branch is behind the remote or diverged. Please pull the latest changes.')
         sys.exit(1)
     status_dict = {'modified': [], 'deleted': [], 'untracked': [], 'renamed': []}
     modified_files = re.findall(r'\s+modified:\s+(.*)', git_status)
@@ -114,7 +108,6 @@ def extract_changed_files():
     status_dict['untracked'].extend(untracked_files)
     status_dict['renamed'].extend(renamed_files)
     return status_dict
-
 def display_and_return_modified_list(status):
     modified_list = []
     if status:
@@ -128,7 +121,6 @@ def display_and_return_modified_list(status):
                 modified_list += section_list
         print(f'------------------------------------------------\n')
     return modified_list
-
 def check_compilation_status():
     print(f'\nChecking for compilation..')
     sim_path = os.path.join(script_path, 'sim')
@@ -140,13 +132,11 @@ def check_compilation_status():
             if '*E' in data:
                 return False
     return True
-
 args = get_args()
 dbg_mode = args.debug or dbg_mode
 compile_check = True if args.compile_check else compile_check
 compile_check = False if args.no_compile_check else compile_check
 clean_terminal()
-
 if args.ignore:
     for item in args.ignore:
         terminal(f"git rm -r --cached {item}")
@@ -155,15 +145,12 @@ if args.ignore:
     terminal("git add .gitignore")
     if not (args.push or args.push_all):
         sys.exit(0)
-
 modified_list = []
 status = extract_changed_files()
 if status: modified_list = display_and_return_modified_list(status)
-
 if args.reset:
     reset_to_latest_branch()
     sys.exit(0)
-
 if args.push or args.push_all:
     if not status: sys.exit(0)
     if not modified_list: sys.exit(0)
@@ -179,4 +166,4 @@ if args.push or args.push_all:
     commit_msg = input('\nEnter comments for git commit: ') if not args.no_comment else ""
     _, _, _ = terminal(f"git commit --allow-empty-message -m \"{commit_msg}\"", execute_anyways=False)
     print('\nPushing changes..')
-    _, _, _ = terminal('git push origin main', execute_anyways=False)
+    _, _, _ = terminal('git push -u origin HEAD', execute_anyways=False)

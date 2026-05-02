@@ -5,6 +5,7 @@ module control_unit(
     input cpu_alu_operation_e alu_operation,
     input cpu_jmp_type_e jmp_operation,
     input logic[7:0] status,
+    output logic count_en,
     output logic reg_write_en,
     output logic halt_en,
     output logic reg_bus_ctrl,
@@ -32,6 +33,7 @@ module control_unit(
     end
 
     always_comb begin
+        count_en = 1;
         reg_write_en = 0;
         halt_en = 0;
         reg_bus_ctrl = 0;
@@ -101,6 +103,7 @@ module control_unit(
             end
             HALT: begin
                 halt_en = 1;
+                count_en = 0;
             end
         endcase
     end

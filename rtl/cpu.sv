@@ -1,14 +1,7 @@
-`include "cpu_enums.sv"
-`include "cpu_instruction_decoder.sv"
-`include "cpu_memory.sv"
-`include "cpu_registers.sv"
-`include "cpu_alu.sv"
-`include "cpu_program_counter.sv"
-`include "cpu_control_unit.sv"
-
-module top;
-    bit clk;
-    bit rst_n;
+module cpu(
+    input logic clk,
+    input logic rst_n
+);
     reg       load_en;
     reg       count_en;
     reg[15:0] pc_addr_update;
@@ -108,6 +101,7 @@ module top;
     control_unit u_ctrl(
         .clk(clk),
         .rst_n(rst_n),
+        .count_en(count_en),
         .opcode(opcode),
         .alu_operation(cpu_alu_operation_e'(instruction[3:0])),
         .jmp_operation(cpu_jmp_type_e'(instruction[9:8])),
@@ -149,25 +143,5 @@ module top;
                 stack_pointer <= stack_pointer+1;
             end
         end
-    end
-
-    // clk and reset initialization
-    // temporary
-    always #5 clk = ~clk;
-    string hex_file_path;
-
-    initial begin
-        if (!$value$plusargs("HEX_FILE=%s", hex_file_path)) begin
-            $display("ERROR: +HEX_FILE=<path> argument not provided.");
-            $finish;
-        end
-
-        $display("Loading memory from: %s", hex_file_path);
-        $readmemh(hex_file_path, u_instruction_memory.memory);        #1 rst_n = 1;
-        count_en = 1;
-        for(int i=0;i<10; i++) begin
-            $display("u_instruction_memory.memory[%0d] = 0x%0h", i, u_instruction_memory.memory[i]);
-        end
-        #350 $finish();
     end
 endmodule
