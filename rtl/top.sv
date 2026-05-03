@@ -31,6 +31,6 @@ module top;
         for(int i=0;i<10; i++) begin
             $display("u_instruction_memory.memory[%0d] = 0x%0h", i, u_cpu.u_instruction_memory.memory[i]);
         end
-        #350 $finish();
+        #650 $finish();
     end
 endmodule

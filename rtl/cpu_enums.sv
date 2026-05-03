@@ -12,11 +12,11 @@ typedef enum bit[3:0] {
     LOAD_SP   = 4'b1000,
     JMP       = 4'b1001, // IMPLEMENTED
     BCC       = 4'b1010,  // IMPLEMENTED
-    CALL      = 4'b1011,
-    RET       = 4'b1100,
-    PUSH      = 4'b1101,
-    POP       = 4'b1110,
-    HALT      = 4'b1111
+    CALL      = 4'b1011, // IMPLEMENTED
+    RET       = 4'b1100, // IMPLEMENT,
+    PUSH      = 4'b1101, // IMPLEMENT,
+    POP       = 4'b1110, // IMPLEMENT,
+    HALT      = 4'b1111 // IMPLEMENT
 } cpu_opcodes_e;
 
 typedef enum bit[3:0] {

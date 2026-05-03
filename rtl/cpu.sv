@@ -34,6 +34,8 @@ module cpu(
     reg[15:0] reg_indirect_address;
     reg[15:0] data_mem_address;
     reg pc_load_en;
+    reg[1:0] pc_field_sel;
+    reg[15:0] pc_ret_state;
 
     // stack related variables
     reg[15:0] stack_pointer;
@@ -119,14 +121,15 @@ module cpu(
         .load_stack_en(load_stack_en),
         .decr_stack(decr_stack),
         .incr_stack(incr_stack),
+        .pc_field_sel(pc_field_sel),
         .halt_en()
     );
 
     assign status_bus = {6'b0, alu_carry, alu_zero};
     assign register_wr_data = (reg_bus_ctrl===1) ? ((reg_bus_direct===0) ? data_mem_out : immidiate_bits) : alu_result;
-    assign data_mem_data = reg_a;
+    assign data_mem_data = (pc_field_sel[1]===0) ? reg_a : ((pc_field_sel[0]===1) ? address_bus[15:8] : address_bus[7:0]);
     assign data_mem_address = (decr_stack===1) ? (stack_pointer-1) : ((incr_stack===1) ? (stack_pointer) : (data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits)));
-    assign pc_addr_update = (instruction_register[11]) ? reg_indirect_address : immidiate_bits;
+    assign pc_addr_update = (pc_field_sel[1]===0) ? ((instruction_register[11]) ? reg_indirect_address : immidiate_bits) : (pc_ret_state);
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
@@ -148,6 +151,13 @@ module cpu(
             if(incr_stack) begin
                 stack_pointer <= stack_pointer+1;
             end
+            if(pc_field_sel[1]) begin
+                if(pc_field_sel[0]) begin
+                    pc_ret_state[15:8] <= data_mem_out;
+                end else begin
+                    pc_ret_state[7:0] <= data_mem_out;
+                end
+            end 
         end
     end
 endmodule

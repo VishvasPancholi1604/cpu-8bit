@@ -17,7 +17,8 @@ module control_unit(
     output logic load_stack_en,
     output logic decr_stack,
     output logic incr_stack,
-    output logic ir_write_en
+    output logic ir_write_en,
+    output logic[1:0] pc_field_sel
 );
     // DEPRICATED
     cpu_states_e current_state, next_state;
@@ -32,19 +33,23 @@ module control_unit(
     always_comb begin
         case (current_state)
             FETCH: next_state = DECODE;
-            DECODE: next_state = EXECUTE;
-            EXECUTE: begin
+            DECODE: begin
                 case (opcode)
                     CALL: next_state = CALL_HI;
                     RET: next_state = RET_LO;
+                    default: next_state = EXECUTE;
+                endcase
+            end
+            EXECUTE: begin
+                case (opcode)
                     HALT: next_state = HALTED;
                     default: next_state = FETCH;
                 endcase
             end
             CALL_HI: next_state = CALL_LO;
-            CALL_LO: next_state = FETCH;
+            CALL_LO: next_state = EXECUTE;
             RET_LO: next_state = RET_HI;
-            RET_HI: next_state = FETCH;
+            RET_HI: next_state = EXECUTE;
             HALTED: next_state = HALTED;
             default: next_state = FETCH;
         endcase
@@ -64,12 +69,14 @@ module control_unit(
         decr_stack = 0;
         incr_stack = 0;
         ir_write_en = 0;
+        pc_field_sel = 2'b0;
         case (current_state)
             FETCH: begin
                 count_en = 1;
                 ir_write_en = 1;
             end
             DECODE: begin
+                // necessary since register file needs one clock cycle to update register values.
             end
             EXECUTE: begin
                 case (opcode)
@@ -106,10 +113,10 @@ module control_unit(
                     end
                     BCC: begin
                         case (jmp_operation)
-                            JZ  : pc_load_en = (status[0]===0);
-                            JNZ : pc_load_en = (status[0]!==0);
-                            JC  : pc_load_en = (status[1]===0);
-                            JNC : pc_load_en = (status[1]!==0);
+                            JZ  : pc_load_en = (status[0]!==0);
+                            JNZ : pc_load_en = (status[0]===0);
+                            JC  : pc_load_en = (status[1]!==0);
+                            JNC : pc_load_en = (status[1]===0);
                         endcase
                     end
                     LOAD_SP: begin
@@ -126,10 +133,23 @@ module control_unit(
                         reg_bus_ctrl = 1;
                         reg_bus_direct = 0;
                     end
+                    CALL, RET: begin
+                        pc_load_en = 1;
+                        pc_field_sel[1] = (opcode==RET) ? 1 : 0;
+                    end
                     HALT: begin
                         halt_en = 1;
                     end
                 endcase
+            end
+            CALL_HI, CALL_LO: begin
+                data_mem_wr_en = 1;
+                decr_stack = 1;
+                pc_field_sel = (current_state == CALL_HI) ? 2'b11 : 2'b10;
+            end
+            RET_LO, RET_HI: begin
+                incr_stack = 1;
+                pc_field_sel = (current_state == RET_LO) ? 2'b10 : 2'b11;
             end
         endcase
     end
