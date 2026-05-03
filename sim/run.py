@@ -20,8 +20,7 @@ include_list = [
         # 'verif/ref_model/'
 ]
 includes = ' '.join([(f'-incdir {os.path.join(project_dir, include)}') for include in include_list])
-# top_module_path = os.path.join(project_dir, 'top.sv')
-top_module_path = os.path.join(project_dir, 'rtl', 'top.sv')
+top_module_path = os.path.join(project_dir, 'top.sv')
 timescale = '1ns/1ns'
 
 # Fire command on terminal..

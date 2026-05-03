@@ -26,12 +26,11 @@ module top;
         end
 
         $display("Loading memory from: %s", hex_file_path);
-        $readmemh(hex_file_path, u_instruction_memory.memory);
+        $readmemh(hex_file_path, u_cpu.u_instruction_memory.memory);
         #1 rst_n = 1;
-        count_en = 1;
         for(int i=0;i<10; i++) begin
-            $display("u_instruction_memory.memory[%0d] = 0x%0h", i, u_instruction_memory.memory[i]);
+            $display("u_instruction_memory.memory[%0d] = 0x%0h", i, u_cpu.u_instruction_memory.memory[i]);
         end
-        #350 $finish();
+        #650 $finish();
     end
 endmodule
