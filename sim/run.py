@@ -1,12 +1,16 @@
 import os, subprocess, argparse, sys
 from datetime import datetime
 
+# constants
+timescale = '1ns/1ns'
+
 # script path
 script_path = os.path.dirname(os.path.realpath(__file__))
 project_dir = os.path.dirname(script_path)
 results_dir = os.path.join(script_path, 'sim_data')
-svcf_path = os.path.join(project_dir, 'cpu.svcf')
+svcf_path = os.path.join(script_path, 'cpu.svcf')
 os.makedirs(results_dir, exist_ok=True)
+waves_dir = os.path.join(results_dir, 'waves.shm')
 
 # keep this on for Xcelium Simulator
 is_xcelium = True
@@ -21,7 +25,6 @@ include_list = [
 ]
 includes = ' '.join([(f'-incdir {os.path.join(project_dir, include)}') for include in include_list])
 top_module_path = os.path.join(project_dir, 'top.sv')
-timescale = '1ns/1ns'
 
 # Fire command on terminal..
 def terminal(command, working_dir=results_dir):
@@ -41,6 +44,7 @@ def get_args():
     parser.add_argument('-noc', '--no_compile', action='store_true', help='do not compile, simulate only')
     parser.add_argument('-w', '--waves', action='store_true', help='')
     parser.add_argument('--hex', action='store_true', help='select hex file to load')
+    parser.add_argument('-k', '--kill', action='store_true', help='')
     args = parser.parse_args()
     return args
 
@@ -100,19 +104,32 @@ def select_hex_file(path, choose_hex=False):
 
 def main():
     args = get_args()
+    if args.kill: # use at own risk, may terminate all simvision sessions..
+        terminal('pkill -9 -f simvision')
+        if not (args.compile or args.no_compile or args.waves or args.hex):
+            sys.exit(0)
     hex_dir = os.path.join(script_path, 'asm')
     selected_hex = select_hex_file(hex_dir, choose_hex=args.hex)
-    compile_args = f'-uvm {includes} +UVM_NO_RELNOTES +define+UVM_REPORT_DISABLE_FILE -licqueue +access+r'
+    # compile_args = f'{includes} -uvm +UVM_NO_RELNOTES +define+UVM_REPORT_DISABLE_FILE -licqueue +access+r'
+    compile_args = f'{includes} -licqueue +access+r'
     shm_path = os.path.join(script_path, 'shm.tcl')
-    command = f"xrun {top_module_path} -licqueue {compile_args} -input {shm_path} +UVM_TESTNAME=cpu_base_test_c +HEX_FILE=\"{selected_hex}\""
+    command = f"xrun {top_module_path} -licqueue {compile_args} +HEX_FILE=\"{selected_hex}\""
     compile_file_path = os.path.join(results_dir, f'xcelium.d/')
     if args.compile:
         command += ' -compile'
     if args.no_compile:
-        command = f'xrun -xmlibdirname {compile_file_path} -R -input {shm_path} +UVM_TESTNAME=cpu_base_test_c +HEX_FILE=\"{selected_hex}\"'
+        command = f'xrun -xmlibdirname {compile_file_path} -R +HEX_FILE=\"{selected_hex}\"'
     if args.waves:
-        command += f' -access +rwc -gui &'
+        command += f' -input {shm_path} -access +rwc'
     _, output = terminal(command)
-    
+    if args.waves:
+        if not os.path.exists(waves_dir):
+            print(f'could not locate waveforms at waveform dir: {waves_dir}')
+            sys.exit(1)
+        command = f'simvision -input {svcf_path} {waves_dir}/waves* &'
+        print(f'>> {command}\n')
+        subprocess.Popen(command, shell=True, cwd=results_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        sys.exit(0)
+        
 if __name__ == '__main__':
     main()
