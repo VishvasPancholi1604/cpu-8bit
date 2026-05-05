@@ -15,8 +15,8 @@ module registers(
     reg[7:0] registers[0:3];
     // OLD: assign dest_data = registers[int'(dest_addr)];
     // OLD: assign src_data  = registers[int'(src_addr)];
+    // OLD: assign o_status_reg = status_reg;
     assign data_mem_addr = {registers[int'(REG3)], registers[int'(REG2)]};
-    assign o_status_reg = status_reg;
     always_ff @(posedge clk) begin
         if(wr_en) begin
             registers[int'(dest_addr)] <= write_data;
@@ -26,5 +26,6 @@ module registers(
         end
         dest_data <= registers[int'(dest_addr)];
         src_data  <= registers[int'(src_addr)];
+        o_status_reg <= status_reg;
     end
 endmodule

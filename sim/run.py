@@ -11,6 +11,8 @@ results_dir = os.path.join(script_path, 'sim_data')
 svcf_path = os.path.join(script_path, 'cpu.svcf')
 os.makedirs(results_dir, exist_ok=True)
 waves_dir = os.path.join(results_dir, 'waves.shm')
+# hex_dir = os.path.join(script_path, 'asm')
+hex_dir = os.path.join(script_path, 'assembler', 'hex')
 
 # keep this on for Xcelium Simulator
 is_xcelium = True
@@ -108,7 +110,6 @@ def main():
         terminal('pkill -9 -f simvision')
         if not (args.compile or args.no_compile or args.waves or args.hex):
             sys.exit(0)
-    hex_dir = os.path.join(script_path, 'asm')
     selected_hex = select_hex_file(hex_dir, choose_hex=args.hex)
     # compile_args = f'{includes} -uvm +UVM_NO_RELNOTES +define+UVM_REPORT_DISABLE_FILE -licqueue +access+r'
     compile_args = f'{includes} -licqueue +access+r'

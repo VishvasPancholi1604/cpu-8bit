@@ -113,10 +113,10 @@ module control_unit(
                     end
                     BCC: begin
                         case (jmp_operation)
-                            JZ  : pc_load_en = (status[0]!==0);
-                            JNZ : pc_load_en = (status[0]===0);
-                            JC  : pc_load_en = (status[1]!==0);
-                            JNC : pc_load_en = (status[1]===0);
+                            JZ  : pc_load_en = (status[0]!=0);
+                            JNZ : pc_load_en = (status[0]==0);
+                            JC  : pc_load_en = (status[1]!=0);
+                            JNC : pc_load_en = (status[1]==0);
                         endcase
                     end
                     LOAD_SP: begin

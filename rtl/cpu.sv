@@ -36,6 +36,7 @@ module cpu(
     reg pc_load_en;
     reg[1:0] pc_field_sel;
     reg[15:0] pc_ret_state;
+    reg[7:0] current_status;
 
     // stack related variables
     reg[15:0] stack_pointer;
@@ -89,7 +90,8 @@ module cpu(
         .status_data(status_bus), // need to figure out
         .dest_data(reg_a), // need to figure out
         .src_data(reg_b), // need to figure out
-        .data_mem_addr(reg_indirect_address)
+        .data_mem_addr(reg_indirect_address),
+        .o_status_reg(current_status)
     );
     
     alu u_alu(
@@ -110,7 +112,7 @@ module cpu(
         .opcode(opcode),
         .alu_operation(cpu_alu_operation_e'(instruction_register[3:0])),
         .jmp_operation(cpu_jmp_type_e'(instruction_register[9:8])),
-        .status(status_bus),
+        .status(current_status),
         .reg_write_en(register_wr_en),
         .reg_bus_ctrl(reg_bus_ctrl),
         .reg_bus_direct(reg_bus_direct),
