@@ -3,3 +3,4 @@ xrun.history
 xrun.log
 sim/sim_data/
 .simvision
+sim/assembler/__pycache__/
