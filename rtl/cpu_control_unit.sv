@@ -96,7 +96,7 @@ module control_unit(
                         o_data_mem_wr_ind_en = 0;
                     end
                     LOAD_REG: begin
-                        o_reg_bus_ctrl = 1;
+                        o_reg_bus_ctrl = 0;
                         o_reg_file_write_en = 1;
                         o_ctrl_reg_file_transfer = 1;
                     end

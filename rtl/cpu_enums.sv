@@ -14,8 +14,8 @@ typedef enum bit[5:0] {
     LOAD_IND    = 6'b001010,
     LSL         = 6'b001011,
     LSR         = 6'b001100,
-    INC         = 6'b001101,
-    DEC         = 6'b001110,
+    INC         = 6'b001101, // YET TO IMPLEMENT
+    DEC         = 6'b001110, // YET TO IMPLEMENT
     PUSH        = 6'b001111,
     POP         = 6'b010000,
     STORE_IND   = 6'b010001,
@@ -33,8 +33,8 @@ typedef enum bit[5:0] {
     AND         = 6'b011101,
     OR          = 6'b011110,
     XOR         = 6'b011111,
-    MUL         = 6'b100000,
-    DIV         = 6'b100001,
+    MUL         = 6'b100000, // YET TO IMPLEMENT
+    DIV         = 6'b100001, // YET TO IMPLEMENT
     STORE_DIR   = 6'b100010,
     LOAD_IMM    = 6'b100011,
     LOAD_DIR    = 6'b100100
@@ -101,6 +101,7 @@ typedef enum bit[3:0] {
     ALU_DEC = 4'b1011
 } cpu_alu_operation_e;
 
+// DEPRICATED
 typedef enum bit[1:0] {
     BCC_JZ  = 2'b00, 
     BCC_JNZ = 2'b01, 

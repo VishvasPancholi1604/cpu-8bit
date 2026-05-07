@@ -1,10 +1,10 @@
-# SimVision Command Script (Mon May 04 05:18:28 AM EDT 2026)
+# SimVision Command Script (Thu May 07 02:19:23 PM EDT 2026)
 #
 # Version 24.09.s004
 #
 # You can restore this configuration with:
 #
-#     simvision -input /u/pancholv/Desktop/sv_uvm/cpu/sim/cpu.svcf
+#     simvision -input /u/pancholv/Desktop/sv_uvm/cpu/sim/sim_data/cpu.svcf
 #
 
 
@@ -56,54 +56,40 @@ preferences set toolbar-TimeSearch-WatchWindow {
 #
 # Groups
 #
-catch {group new -name program_counter -overlay 0}
-catch {group new -name instruction_memory -overlay 0}
-catch {group new -name data_memory -overlay 0}
 catch {group new -name instruction_decoder -overlay 0}
-catch {group new -name control_unit -overlay 0}
 catch {group new -name register_file -overlay 0}
+catch {group new -name control_unit -overlay 0}
+catch {group new -name alu -overlay 0}
 catch {group new -name stack_pointer -overlay 0}
-group using program_counter
-group set -overlay 0
-group set -comment {}
-group clear 0 end
-
-group insert \
-    [subst  {[format {top.u_cpu.u_pc.load_en}]} ] \
-    [subst  {[format {top.u_cpu.u_pc.count_en}]} ] \
-    [subst  {[format {top.u_cpu.u_pc.pc_data[15:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_pc.pc_out[15:0]}]} ]
-group using instruction_memory
-group set -overlay 0
-group set -comment {}
-group clear 0 end
-
-group insert \
-    [subst  {[format {top.u_cpu.u_instruction_memory.addr[15:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_instruction_memory.wr_en}]} ] \
-    [subst  {[format {top.u_cpu.u_instruction_memory.wr_data[15:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_instruction_memory.data[15:0]}]} ]
-group using data_memory
-group set -overlay 0
-group set -comment {}
-group clear 0 end
-
-group insert \
-    [subst  {[format {top.u_cpu.u_data_memory.addr[15:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_data_memory.wr_en}]} ] \
-    [subst  {[format {top.u_cpu.u_data_memory.wr_data[7:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_data_memory.data[7:0]}]} ]
 group using instruction_decoder
 group set -overlay 0
 group set -comment {}
 group clear 0 end
 
 group insert \
-    [subst  {[format {top.u_cpu.u_instr_decode.instruction[15:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_instr_decode.opcode[3:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_instr_decode.dest_reg[1:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_instr_decode.src_reg[1:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_instr_decode.immediate_data[7:0]}]} ]
+    [subst  {[format {top.u_cpu.u_instr_decode.i_cpu_instruction[15:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_instr_decode.o_instr_opcode[5:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_instr_decode.o_instr_dest_reg[4:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_instr_decode.o_instr_src_reg[4:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_instr_decode.o_instr_imm_data[7:0]}]} ]
+group using register_file
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+    [subst  {[format {top.u_cpu.u_cpu_registers.registers[0:31]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.status_reg[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.o_dest_reg_data[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.o_src_reg_data[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.o_reg_indirect_addr[15:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.o_status_reg[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.i_dest_addr[4:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.i_src_addr[4:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.i_reg_wr_en}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.i_reg_write_data[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.i_status_wr_en}]} ] \
+    [subst  {[format {top.u_cpu.u_cpu_registers.i_status_write_data[7:0]}]} ]
 group using control_unit
 group set -overlay 0
 group set -comment {}
@@ -111,50 +97,47 @@ group clear 0 end
 
 group insert \
     [subst  {[format {top.u_cpu.u_ctrl.current_state[2:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.opcode[3:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.alu_operation[3:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.jmp_operation[1:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.status[7:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.count_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.data_mem_wr_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.data_mem_wr_ind_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.decr_stack}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.halt_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.incr_stack}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.ir_write_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.load_stack_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.pc_field_sel[1:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.pc_load_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.reg_bus_ctrl}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.reg_bus_direct}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.reg_write_en}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.status_flag_update}]} ] \
-    [subst  {[format {top.u_cpu.u_ctrl.next_state[2:0]}]} ]
-group using register_file
+    [subst  {[format {top.u_cpu.u_ctrl.o_ctrl_reg_file_transfer}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_data_mem_wr_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_data_mem_wr_ind_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_decr_stack}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_fetch_instr_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_halt_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_incr_stack}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_instr_alu_operation[3:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_load_stack_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_load_stack_ind_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_pc_count_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_pc_field_sel[1:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_pc_load_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_pc_load_ind_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_reg_bus_ctrl}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_reg_bus_direct}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_reg_file_write_en}]} ] \
+    [subst  {[format {top.u_cpu.u_ctrl.o_status_flag_update_en}]} ]
+group using alu
 group set -overlay 0
 group set -comment {}
 group clear 0 end
 
 group insert \
-    [subst  {[format {top.u_cpu.u_cpu_registers.registers[0:3]}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.status_wr_en}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.wr_en}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.write_data[7:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.dest_addr[1:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.src_addr[1:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.dest_data[7:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.src_data[7:0]}]} ] \
-    [subst  {[format {top.u_cpu.u_cpu_registers.o_status_reg[7:0]}]} ]
+    [subst  {[format {top.u_cpu.u_alu.i_instr_alu_operation[3:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_alu.i_reg_a[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_alu.i_reg_b[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_alu.o_alu_result[7:0]}]} ] \
+    [subst  {[format {top.u_cpu.u_alu.o_status_zero}]} ] \
+    [subst  {[format {top.u_cpu.u_alu.o_status_carry}]} ]
 group using stack_pointer
 group set -overlay 0
 group set -comment {}
 group clear 0 end
 
 group insert \
-    [subst  {[format {top.u_cpu.stack_pointer[15:0]}]} ] \
-    [subst  {[format {top.u_cpu.load_stack_en}]} ] \
-    [subst  {[format {top.u_cpu.incr_stack}]} ] \
-    [subst  {[format {top.u_cpu.decr_stack}]} ]
+    [subst  {[format {top.u_cpu.stack_ptr[15:0]}]} ] \
+    [subst  {[format {top.u_cpu.ctrl_load_stack_ind_en}]} ] \
+    [subst  {[format {top.u_cpu.ctrl_load_stack_en}]} ] \
+    [subst  {[format {top.u_cpu.ctrl_decr_stack}]} ] \
+    [subst  {[format {top.u_cpu.ctrl_incr_stack}]} ]
 
 #
 # Mnemonic Maps
@@ -174,7 +157,7 @@ if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1920x871+-1+27}] 
 }
 window target "Waveform 1" on
 waveform using {Waveform 1}
-waveform sidebar select designbrowser
+waveform sidebar visibility partial
 waveform set \
     -primarycursor TimeA \
     -signalnames name \
@@ -184,25 +167,25 @@ waveform set \
 waveform baseline set -time 0
 
 set id [waveform add -signals [subst  {
-	{[format {top.clk}]}
+	{[format {top.u_cpu.rst_n}]}
 	} ]]
 set id [waveform add -signals [subst  {
-	{[format {top.rst_n}]}
+	{[format {top.u_cpu.clk}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {top.u_cpu.u_pc.i_pc_count_en}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {top.u_cpu.u_pc.i_pc_load_en}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {top.u_cpu.u_pc.o_pc_data[15:0]}]}
 	} ]]
 
-set groupId0 [waveform add -groups program_counter]
-waveform hierarchy collapse $groupId0
-
-
-set groupId0 [waveform add -groups instruction_memory]
-waveform hierarchy collapse $groupId0
-
-
-set groupId0 [waveform add -groups data_memory]
-waveform hierarchy collapse $groupId0
-
-
 set groupId0 [waveform add -groups instruction_decoder]
+
+
+set groupId0 [waveform add -groups register_file]
 waveform hierarchy collapse $groupId0
 
 
@@ -210,7 +193,7 @@ set groupId0 [waveform add -groups control_unit]
 waveform hierarchy collapse $groupId0
 
 
-set groupId0 [waveform add -groups register_file]
+set groupId0 [waveform add -groups alu]
 waveform hierarchy collapse $groupId0
 
 
@@ -218,7 +201,7 @@ set groupId0 [waveform add -groups stack_pointer]
 waveform hierarchy collapse $groupId0
 
 
-waveform xview limits 0 651ns
+waveform xview limits 0 3001ns
 
 #
 # Waveform Window Links

@@ -134,6 +134,7 @@ def main():
             print(f'could not locate waveforms at waveform dir: {waves_dir}')
             sys.exit(1)
         command = f'simvision -input {svcf_path} {waves_dir}/waves* &'
+        # command = f'simvision {waves_dir}/waves* &'
         print(f'>> {command}\n')
         subprocess.Popen(command, shell=True, cwd=results_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         sys.exit(0)
