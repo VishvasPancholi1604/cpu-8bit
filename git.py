@@ -81,14 +81,18 @@ def select_elements_from_list(items):
 
 def pull_latest_changes():
     print('Pulling latest changes from remote..')
-    ret, out, err = terminal('git pull origin HEAD')
-    
+    ret_branch, branch_out, err_branch = terminal('git rev-parse --abbrev-ref HEAD')
+    if ret_branch != 0:
+        print(f"[*ERROR] Failed to determine current branch:\n{err_branch}")
+        return
+    current_branch = branch_out.strip()
+    pull_cmd = f'git pull origin {current_branch}'
+    ret, out, err = terminal(pull_cmd)
     if ret != 0 and 'commit or stash them' in err:
         print('Unstaged changes detected. Auto-stashing before pull...')
         ret_stash, _, _ = terminal('git stash')
-        
         if ret_stash == 0:
-            ret_pull, out_pull, err_pull = terminal('git pull origin HEAD')
+            ret_pull, out_pull, err_pull = terminal(pull_cmd)
             if ret_pull != 0:
                 print(f"[*ERROR] Failed to pull changes after stash:\n{err_pull}")
                 print('Restoring stashed changes...')
@@ -103,7 +107,6 @@ def pull_latest_changes():
                     print("[SUCCESS] Local changes restored.")
         else:
             print("[*ERROR] Failed to stash changes. Pull aborted.")
-            
     elif ret != 0:
         print(f"[*ERROR] Failed to pull changes:\n{err}")
     else:
