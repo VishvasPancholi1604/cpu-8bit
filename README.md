@@ -22,7 +22,16 @@ The CPU includes a dedicated, hardware-managed 16-bit Stack Pointer (`stack_ptr`
 
 ---
 
-## Repository Structure
+# Updated Instruction Set Architecture 
+## Bit Slicing
+<img width="1725" height="849" alt="image" src="https://github.com/user-attachments/assets/f2d2c75e-8c45-41bf-b4da-ef24f2c84c38" />
+
+## Variable length opcode Bifurcation per instruction
+<img width="1378" height="1161" alt="image" src="https://github.com/user-attachments/assets/a30cc2af-8adb-4518-a9f0-6b6cd3567603" />
+
+---
+
+# Repository Structure
 
 **Hardware (SystemVerilog):**
 * `cpu.sv`: Top-level CPU wrapper integrating the datapath and control unit.
@@ -41,13 +50,6 @@ The CPU includes a dedicated, hardware-managed 16-bit Stack Pointer (`stack_ptr`
 ## Using the Assembler
 
 The Python assembler converts `.asm` text files into 16-bit `.hex` machine code. Ensure your `.asm` files are located inside the `sim/assembler/asm/` directory.
-
-## Updated Instruction Set Architecture 
-# Bit Slicing
-<img width="1725" height="849" alt="image" src="https://github.com/user-attachments/assets/f2d2c75e-8c45-41bf-b4da-ef24f2c84c38" />
-
-# Variable length opcode Bifurcation per instruction
-<img width="1378" height="1161" alt="image" src="https://github.com/user-attachments/assets/a30cc2af-8adb-4518-a9f0-6b6cd3567603" />
 
 ### Command Line Execution
 
