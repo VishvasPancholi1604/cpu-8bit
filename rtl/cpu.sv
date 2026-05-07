@@ -2,162 +2,162 @@ module cpu(
     input logic clk,
     input logic rst_n
 );
-    reg       load_en;
-    reg       count_en;
-    reg       ir_write_en; 
-    reg[15:0] instruction_register;
-    reg[15:0] pc_addr_update;
+    reg ctrl_pc_load_en;
+    reg ctrl_pc_count_en;
+    reg ctrl_ir_wr_en; 
+    reg[15:0] instr_reg;
+    reg[15:0] pc_next_addr;
 
     // global bus
-    cpu_states_e cpu_state;
-    wire[15:0] address_bus;
-    reg[15:0] instruction;
-    reg register_wr_en;
-    reg[7:0] register_wr_data;
-    reg[7:0] o_register_wr_data;
-    reg reg_bus_ctrl;
-    reg reg_bus_direct;
-    reg status_bus_ctrl;
-    reg[7:0] status_bus;
-    cpu_opcodes_e opcode;
-    cpu_registers_e src_reg_addr;
-    cpu_registers_e dest_reg_addr;
-    reg[7:0] immidiate_bits;
-    reg[7:0] reg_a, reg_b;
-    reg[7:0] alu_result;
-    reg alu_carry;
-    reg alu_zero;
-    reg data_mem_wr_en;
-    reg data_mem_wr_ind_en;
-    reg[7:0] data_mem_data;
-    reg[7:0] data_mem_out;
-    reg[15:0] reg_indirect_address;
-    reg[15:0] data_mem_address;
-    reg pc_load_en;
-    reg[1:0] pc_field_sel;
-    reg[15:0] pc_ret_state;
-    reg[7:0] current_status;
+    cpu_states_e current_cpu_state;
+    wire[15:0] pc_addr_bus;
+    reg[15:0] pc_return_addr;
+    reg[1:0] ctrl_pc_field_sel;
+    reg[15:0] mem_instr_data;
+    cpu_opcodes_e dec_opcode;
+    cpu_registers_e dec_src_addr;
+    cpu_registers_e dec_dest_addr;
+    reg[7:0] dec_imm_data;
+    reg ctrl_reg_wr_en;
+    reg[7:0] reg_wr_data;
+    reg[7:0] rf_dest_data;
+    reg[7:0] rf_src_data;
+    reg[15:0] rf_indirect_addr;
+    reg ctrl_status_update_en;
+    reg[7:0] rf_status_reg;
+    reg[7:0] alu_status_bus;
+    reg[7:0] alu_out_data;
+    reg alu_out_carry;
+    reg alu_out_zero;
+    reg ctrl_data_mem_wr_en;
+    reg ctrl_data_mem_wr_ind_en;
+    reg[15:0] data_mem_addr;
+    reg[7:0] data_mem_in_data;
+    reg[7:0] data_mem_rd_data;
+    reg ctrl_reg_bus_mux;
+    reg ctrl_reg_bus_dir;
 
     // stack related variables
-    reg[15:0] stack_pointer;
-    reg load_stack_en;
-    reg decr_stack, incr_stack;
+    reg[15:0] stack_ptr;
+    reg ctrl_load_stack_en;
+    reg ctrl_decr_stack;
+    reg ctrl_incr_stack;
 
     // tb signals
     reg instr_mem_wr_en;
     reg[15:0] instr_mem_data;
 
     program_counter u_pc(
-        .clk(clk),
-        .rst_n(rst_n),
-        .load_en(load_en), // need to figure out 
-        .count_en(count_en), // need to figure out 
-        .pc_data(pc_addr_update), // need to figure out 
-        .pc_out(address_bus)
+        .i_clk(clk),
+        .i_rst_n(rst_n),
+        .i_pc_load_en(ctrl_pc_load_en),
+        .i_pc_count_en(ctrl_pc_count_en),
+        .i_pc_data(pc_next_addr),
+        .o_pc_data(pc_addr_bus)
     );
 
     cpu_memory#(.MEM_WIDTH(16), .MEM_LENGTH(65536)) u_instruction_memory(
-        .clk(clk),
-        .addr(address_bus),
-        .wr_en(instr_mem_wr_en),  // need to figure out
-        .wr_data(instr_mem_data), // need to figure out
-        .data(instruction)
+        .i_clk(clk),
+        .i_mem_addr(pc_addr_bus),
+        .i_mem_wr_en(instr_mem_wr_en),
+        .i_mem_wr_data(instr_mem_data),
+        .o_mem_data(mem_instr_data)
     );
 
     cpu_memory#(.MEM_WIDTH(8), .MEM_LENGTH(65536)) u_data_memory(
-        .clk(clk),
-        .addr(data_mem_address),
-        .wr_en(data_mem_wr_en),   // need to figure out
-        .wr_data(data_mem_data), // need to figure out
-        .data(data_mem_out)
+        .i_clk(clk),
+        .i_mem_addr(data_mem_addr),
+        .i_mem_wr_en(ctrl_data_mem_wr_en),
+        .i_mem_wr_data(data_mem_in_data),
+        .o_mem_data(data_mem_rd_data)
     );
 
     instruction_decoder u_instr_decode(
-        .instruction(instruction_register),
-        .opcode(opcode),
-        .src_reg(src_reg_addr),
-        .dest_reg(dest_reg_addr),
-        .immediate_data(immidiate_bits)
+        .i_cpu_instruction(instr_reg),
+        .o_instr_opcode(dec_opcode),
+        .o_instr_src_reg(dec_src_addr),
+        .o_instr_dest_reg(dec_dest_addr),
+        .o_instr_imm_data(dec_imm_data)
     );
 
     registers u_cpu_registers(
-        .clk(clk),
-        .wr_en(register_wr_en),  // need to figure out
-        .status_wr_en(status_bus_ctrl),
-        .src_addr(src_reg_addr), 
-        .dest_addr(dest_reg_addr),
-        .write_data(register_wr_data), // need to figure out
-        .status_data(status_bus), // need to figure out
-        .dest_data(reg_a), // need to figure out
-        .src_data(reg_b), // need to figure out
-        .data_mem_addr(reg_indirect_address),
-        .o_status_reg(current_status)
+        .i_clk(clk),
+        .i_reg_wr_en(ctrl_reg_wr_en),
+        .i_status_wr_en(ctrl_status_update_en),
+        .i_src_addr(dec_src_addr), 
+        .i_dest_addr(dec_dest_addr),
+        .i_reg_write_data(reg_wr_data),
+        .i_status_write_data(alu_status_bus),
+        .o_dest_reg_data(rf_dest_data),
+        .o_src_reg_data(rf_src_data),
+        .o_reg_indirect_addr(rf_indirect_addr),
+        .o_status_reg(rf_status_reg)
     );
     
     alu u_alu(
-        .a(reg_a),
-        .b(reg_b),
-        .opcode(opcode),
-        .alu_operation(cpu_alu_operation_e'(instruction_register[3:0])),
-        .result(alu_result),
-        .carry(alu_carry),
-        .zero(alu_zero)
+        .i_reg_a(rf_dest_data),
+        .i_reg_b(rf_src_data),
+        .i_instr_opcode(dec_opcode),
+        .i_instr_alu_operation(cpu_alu_operation_e'(instr_reg[3:0])),
+        .o_alu_result(alu_out_data),
+        .o_status_carry(alu_out_carry),
+        .o_status_zero(alu_out_zero)
     );
 
     control_unit u_ctrl(
-        .clk(clk),
-        .rst_n(rst_n),
-        .count_en(count_en),
-        .ir_write_en(ir_write_en),
-        .opcode(opcode),
-        .alu_operation(cpu_alu_operation_e'(instruction_register[3:0])),
-        .jmp_operation(cpu_jmp_type_e'(instruction_register[9:8])),
-        .status(current_status),
-        .reg_write_en(register_wr_en),
-        .reg_bus_ctrl(reg_bus_ctrl),
-        .reg_bus_direct(reg_bus_direct),
-        .status_flag_update(status_bus_ctrl),
-        .data_mem_wr_en(data_mem_wr_en),
-        .data_mem_wr_ind_en(data_mem_wr_ind_en),
-        .pc_load_en(load_en),
-        .load_stack_en(load_stack_en),
-        .decr_stack(decr_stack),
-        .incr_stack(incr_stack),
-        .pc_field_sel(pc_field_sel),
-        .halt_en()
+        .i_clk(clk),
+        .i_rst_n(rst_n),
+        .i_instr_opcode(dec_opcode),
+        .i_instr_alu_operation(cpu_alu_operation_e'(instr_reg[3:0])),
+        .i_instr_jmp_operation(cpu_jmp_type_e'(instr_reg[9:8])),
+        .i_status_reg(rf_status_reg),
+        .o_pc_count_en(ctrl_pc_count_en),
+        .o_reg_file_write_en(ctrl_reg_wr_en),
+        .o_reg_bus_ctrl(ctrl_reg_bus_mux),
+        .o_reg_bus_direct(ctrl_reg_bus_dir),
+        .o_status_flag_update_en(ctrl_status_update_en),
+        .o_data_mem_wr_en(ctrl_data_mem_wr_en),
+        .o_data_mem_wr_ind_en(ctrl_data_mem_wr_ind_en),
+        .o_pc_load_en(ctrl_pc_load_en),
+        .o_load_stack_en(ctrl_load_stack_en),
+        .o_decr_stack(ctrl_decr_stack),
+        .o_incr_stack(ctrl_incr_stack),
+        .o_fetch_instr_en(ctrl_ir_wr_en),
+        .o_pc_field_sel(ctrl_pc_field_sel),
+        .o_halt_en()
     );
 
-    assign status_bus = {6'b0, alu_carry, alu_zero};
-    assign register_wr_data = (reg_bus_ctrl===1) ? ((reg_bus_direct===0) ? data_mem_out : immidiate_bits) : alu_result;
-    assign data_mem_data = (pc_field_sel[1]===0) ? reg_a : ((pc_field_sel[0]===1) ? address_bus[15:8] : address_bus[7:0]);
-    assign data_mem_address = (decr_stack===1) ? (stack_pointer-1) : ((incr_stack===1) ? (stack_pointer) : (data_mem_wr_ind_en ? (reg_indirect_address) : (immidiate_bits)));
-    assign pc_addr_update = (pc_field_sel[1]===0) ? ((instruction_register[11]) ? reg_indirect_address : immidiate_bits) : (pc_ret_state);
+    assign alu_status_bus = {6'b0, alu_out_carry, alu_out_zero};
+    assign reg_wr_data = (ctrl_reg_bus_mux===1) ? ((ctrl_reg_bus_dir===0) ? data_mem_rd_data : dec_imm_data) : alu_out_data;
+    assign data_mem_in_data = (ctrl_pc_field_sel[1]===0) ? rf_dest_data : ((ctrl_pc_field_sel[0]===1) ? pc_addr_bus[15:8] : pc_addr_bus[7:0]);
+    assign data_mem_addr = (ctrl_decr_stack===1) ? (stack_ptr-1) : ((ctrl_incr_stack===1) ? (stack_ptr) : (ctrl_data_mem_wr_ind_en ? (rf_indirect_addr) : (dec_imm_data)));
+    assign pc_next_addr = (ctrl_pc_field_sel[1]===0) ? ((instr_reg[11]) ? rf_indirect_addr : dec_imm_data) : (pc_return_addr);
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-            stack_pointer <= `STACK_PTR_HW_RST_VAL;
+            stack_ptr <= `STACK_PTR_HW_RST_VAL;
         end else begin
-            if(ir_write_en) begin
-                instruction_register <= instruction;
+            if(ctrl_ir_wr_en) begin
+                instr_reg <= mem_instr_data;
             end
-            if(load_stack_en) begin
-                if(instruction_register[11]) begin
-                    stack_pointer <= reg_indirect_address;
+            if(ctrl_load_stack_en) begin
+                if(instr_reg[11]) begin
+                    stack_ptr <= rf_indirect_addr;
                 end else begin
-                    stack_pointer <= {8'b0, immidiate_bits};
+                    stack_ptr <= {8'b0, dec_imm_data};
                 end
             end
-            if(decr_stack) begin
-                stack_pointer <= stack_pointer-1;
+            if(ctrl_decr_stack) begin
+                stack_ptr <= stack_ptr-1;
             end
-            if(incr_stack) begin
-                stack_pointer <= stack_pointer+1;
+            if(ctrl_incr_stack) begin
+                stack_ptr <= stack_ptr+1;
             end
-            if(pc_field_sel[1]) begin
-                if(pc_field_sel[0]) begin
-                    pc_ret_state[15:8] <= data_mem_out;
+            if(ctrl_pc_field_sel[1]) begin
+                if(ctrl_pc_field_sel[0]) begin
+                    pc_return_addr[15:8] <= data_mem_rd_data;
                 end else begin
-                    pc_ret_state[7:0] <= data_mem_out;
+                    pc_return_addr[7:0] <= data_mem_rd_data;
                 end
             end 
         end
