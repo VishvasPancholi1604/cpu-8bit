@@ -42,15 +42,7 @@ The CPU includes a dedicated, hardware-managed 16-bit Stack Pointer (`stack_ptr`
 
 The Python assembler converts `.asm` text files into 16-bit `.hex` machine code. Ensure your `.asm` files are located inside the `sim/assembler/asm/` directory.
 
-### Command Line Execution
-
-```bash
-# Automatically compile the most recently modified .asm file
-python assembler.py
-
-# Select a specific .asm file from an interactive list
-python assembler.py --select
-
+## Updated Instruction Set Architecture
 
 		15	14	13	12	11	10	9	8	7	6	5	4	3	2	1	0
 																	
@@ -136,4 +128,14 @@ size"
 	b10	LOAD_IMM	yes	no	yes	3	5	0	8	13
 	b11	LOAD_DIR	yes	no	yes	3	5	0	8	13
 <img width="1378" height="1161" alt="image" src="https://github.com/user-attachments/assets/a30cc2af-8adb-4518-a9f0-6b6cd3567603" />
+
+### Command Line Execution
+
+```bash
+# Automatically compile the most recently modified .asm file
+python assembler.py
+
+# Select a specific .asm file from an interactive list
+python assembler.py --select
+
 
