@@ -1,5 +1,7 @@
 import os, subprocess, argparse, sys
 from datetime import datetime
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'assembler'))
+from assembler import assemble_file
 
 # constants
 timescale = '1ns/1ns'
@@ -11,6 +13,7 @@ results_dir = os.path.join(script_path, 'sim_data')
 svcf_path = os.path.join(script_path, 'cpu.svcf')
 os.makedirs(results_dir, exist_ok=True)
 waves_dir = os.path.join(results_dir, 'waves.shm')
+asm_dir = os.path.join(script_path, 'assembler', 'asm')
 # hex_dir = os.path.join(script_path, 'asm')
 hex_dir = os.path.join(script_path, 'assembler', 'hex')
 
@@ -45,7 +48,7 @@ def get_args():
     parser.add_argument('--compile', action='store_true', help='compile only, do not simulate')
     parser.add_argument('-noc', '--no_compile', action='store_true', help='do not compile, simulate only')
     parser.add_argument('-w', '--waves', action='store_true', help='')
-    parser.add_argument('--hex', action='store_true', help='select hex file to load')
+    parser.add_argument('--asm', action='store_true', help='select asm file to assemble and load')
     parser.add_argument('-k', '--kill', action='store_true', help='')
     args = parser.parse_args()
     return args
@@ -85,32 +88,35 @@ def get_integer_input(prompt_message, min_value=None, max_value=None):
     except ValueError:
         return None
 
-def select_hex_file(path, choose_hex=False):
+def select_asm_file(path, choose_asm=False):
     os.makedirs(path, exist_ok=True)
-    hex_files = [file for file in os.listdir(path) if file.endswith('.hex')]
-    if not hex_files:
-        print(f"No '.hex' files found in {path}")
+    asm_files = [file for file in os.listdir(path) if file.endswith('.asm')]
+    if not asm_files:
+        print(f"No '.asm' files found in {path}")
         sys.exit(1)
-    hex_paths = [os.path.join(path, file) for file in hex_files]
-    if not choose_hex:
-        latest_file = max(hex_paths, key=os.path.getmtime)
-        print(f"Using default hex file: {latest_file}")
+    asm_paths = [os.path.join(path, file) for file in asm_files]
+    if not choose_asm:
+        latest_file = max(asm_paths, key=os.path.getmtime)
+        print(f"Using default asm file: {latest_file}")
         return latest_file
-    print_list_with_idx(hex_files)
-    selected_idx = get_integer_input('Select index of \'.hex\' file', 0, len(hex_files)-1)
+    print_list_with_idx(asm_files)
+    selected_idx = get_integer_input('Select index of \'.asm\' file', 0, len(asm_files)-1)
     if selected_idx is None:
         print(f'Invalid input. Defaulting to 0.')
         selected_idx = 0
-    print(f'Selected hex file: {hex_paths[selected_idx]}')
-    return hex_paths[selected_idx]
+    print(f'Selected asm file: {asm_paths[selected_idx]}')
+    return asm_paths[selected_idx]
 
 def main():
     args = get_args()
     if args.kill: # use at own risk, may terminate all simvision sessions..
         terminal('pkill -9 -f simvision')
-        if not (args.compile or args.no_compile or args.waves or args.hex):
+        if not (args.compile or args.no_compile or args.waves or args.asm):
             sys.exit(0)
-    selected_hex = select_hex_file(hex_dir, choose_hex=args.hex)
+    selected_asm = select_asm_file(asm_dir, choose_asm=args.asm)
+    os.makedirs(hex_dir, exist_ok=True)
+    selected_hex = os.path.join(hex_dir, os.path.basename(selected_asm).replace('.asm', '.hex'))
+    assemble_file(selected_asm, selected_hex)
     # compile_args = f'{includes} -uvm +UVM_NO_RELNOTES +define+UVM_REPORT_DISABLE_FILE -licqueue +access+r'
     compile_args = f'{includes} -licqueue +access+r'
     shm_path = os.path.join(script_path, 'shm.tcl')

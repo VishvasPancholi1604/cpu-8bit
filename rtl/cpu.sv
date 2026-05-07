@@ -5,6 +5,8 @@ module cpu(
     reg ctrl_pc_load_en;
     reg ctrl_pc_count_en;
     reg ctrl_ir_wr_en; 
+    cpu_alu_operation_e ctrl_alu_operation;
+    cpu_jmp_type_e ctrl_jmp_operation;
     reg[15:0] instr_reg;
     reg[15:0] pc_next_addr;
 
@@ -36,10 +38,13 @@ module cpu(
     reg[7:0] data_mem_rd_data;
     reg ctrl_reg_bus_mux;
     reg ctrl_reg_bus_dir;
+    reg ctrl_reg_file_transfer;
+    reg ctrl_load_pc_ind_en;
 
     // stack related variables
     reg[15:0] stack_ptr;
     reg ctrl_load_stack_en;
+    reg ctrl_load_stack_ind_en;
     reg ctrl_decr_stack;
     reg ctrl_incr_stack;
 
@@ -97,8 +102,8 @@ module cpu(
     alu u_alu(
         .i_reg_a(rf_dest_data),
         .i_reg_b(rf_src_data),
-        .i_instr_opcode(dec_opcode),
-        .i_instr_alu_operation(cpu_alu_operation_e'(instr_reg[3:0])),
+        // .i_instr_opcode(dec_opcode),
+        .i_instr_alu_operation(ctrl_alu_operation),
         .o_alu_result(alu_out_data),
         .o_status_carry(alu_out_carry),
         .o_status_zero(alu_out_zero)
@@ -108,31 +113,33 @@ module cpu(
         .i_clk(clk),
         .i_rst_n(rst_n),
         .i_instr_opcode(dec_opcode),
-        .i_instr_alu_operation(cpu_alu_operation_e'(instr_reg[3:0])),
-        .i_instr_jmp_operation(cpu_jmp_type_e'(instr_reg[9:8])),
         .i_status_reg(rf_status_reg),
+        .o_instr_alu_operation(ctrl_alu_operation),
         .o_pc_count_en(ctrl_pc_count_en),
         .o_reg_file_write_en(ctrl_reg_wr_en),
         .o_reg_bus_ctrl(ctrl_reg_bus_mux),
         .o_reg_bus_direct(ctrl_reg_bus_dir),
+        .o_ctrl_reg_file_transfer(ctrl_reg_file_transfer),
         .o_status_flag_update_en(ctrl_status_update_en),
         .o_data_mem_wr_en(ctrl_data_mem_wr_en),
         .o_data_mem_wr_ind_en(ctrl_data_mem_wr_ind_en),
         .o_pc_load_en(ctrl_pc_load_en),
+        .o_pc_load_ind_en(ctrl_load_pc_ind_en),
         .o_load_stack_en(ctrl_load_stack_en),
         .o_decr_stack(ctrl_decr_stack),
         .o_incr_stack(ctrl_incr_stack),
         .o_fetch_instr_en(ctrl_ir_wr_en),
+        .o_load_stack_ind_en(ctrl_load_stack_ind_en),
         .o_pc_field_sel(ctrl_pc_field_sel),
         .o_halt_en()
     );
 
     assign alu_status_bus = {6'b0, alu_out_carry, alu_out_zero};
-    assign reg_wr_data = (ctrl_reg_bus_mux===1) ? ((ctrl_reg_bus_dir===0) ? data_mem_rd_data : dec_imm_data) : alu_out_data;
+    assign reg_wr_data = (ctrl_reg_bus_mux===1) ? ((ctrl_reg_bus_dir===1) ? data_mem_rd_data : dec_imm_data) : ((ctrl_reg_file_transfer) ? rf_src_data : alu_out_data);
     assign data_mem_in_data = (ctrl_pc_field_sel[1]===0) ? rf_dest_data : ((ctrl_pc_field_sel[0]===1) ? pc_addr_bus[15:8] : pc_addr_bus[7:0]);
-    assign data_mem_addr = (ctrl_decr_stack===1) ? (stack_ptr-1) : ((ctrl_incr_stack===1) ? (stack_ptr) : (ctrl_data_mem_wr_ind_en ? (rf_indirect_addr) : (dec_imm_data)));
-    assign pc_next_addr = (ctrl_pc_field_sel[1]===0) ? ((instr_reg[11]) ? rf_indirect_addr : dec_imm_data) : (pc_return_addr);
-
+    assign data_mem_addr = (ctrl_decr_stack===1) ? (stack_ptr-1) : ((ctrl_incr_stack===1) ? (stack_ptr) : (ctrl_data_mem_wr_ind_en ? (rf_indirect_addr) : ({8'b0, dec_imm_data})));
+    assign pc_next_addr = (ctrl_pc_field_sel[1]===0) ? (ctrl_load_pc_ind_en ? rf_indirect_addr : {8'b0, dec_imm_data}) : (pc_return_addr);
+    
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             stack_ptr <= `STACK_PTR_HW_RST_VAL;
@@ -141,7 +148,7 @@ module cpu(
                 instr_reg <= mem_instr_data;
             end
             if(ctrl_load_stack_en) begin
-                if(instr_reg[11]) begin
+                if(ctrl_load_stack_ind_en) begin
                     stack_ptr <= rf_indirect_addr;
                 end else begin
                     stack_ptr <= {8'b0, dec_imm_data};
