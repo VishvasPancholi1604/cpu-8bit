@@ -51,6 +51,11 @@ The new ISA utilizes hierarchical decoding to pack 5-bit register addresses and 
 
 ---
 
+## Documentation
+Below document contains Custom CPU Specification. In future it will contain information related to how to program instructiona and data memory once frontdoor write support is implemented in the RTL.
+[cpu_architecture_specification.docx](https://docs.google.com/document/d/1yNUjRMEExi_nJJJaYHFxKR3_k259iSzv/edit?usp=sharing&ouid=111404798794638873105&rtpof=true&sd=true)
+---
+
 ## Usage Guide
 
 ### 1. Writing Assembly
