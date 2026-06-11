@@ -29,12 +29,6 @@ module spi_isp(
     logic [2:0] cs_n_sync;
     logic [1:0] mosi_sync;
 
-    initial begin
-        sck_sync = 3'b000;
-        cs_n_sync = 3'b111;
-        mosi_sync = 3'b00;
-    end
-
     // Use pure clock for synchronizers to catch signals even if CPU is in reset
     always_ff @(posedge clk) begin
         sck_sync  <= {sck_sync[1:0], spi_sck};
@@ -44,14 +38,18 @@ module spi_isp(
 
     wire sck_rise  = (sck_sync[2:1] == 2'b01);
     wire sck_fall  = (sck_sync[2:1] == 2'b10);
-    wire cs_active = !cs_n_sync[1];
+    wire cs_active = (cs_n_sync[1] == 1'b0); // CS is active low
     wire mosi_val  = mosi_sync[1];
 
-    // Enable ISP mode only when CPU is in hardware reset and CS is active
     assign isp_mode = !rst_n && cs_active;
 
-    typedef enum logic [2:0] {
-        IDLE,
+    // Commands
+    localparam CMD_WRITE_INSTR = 8'h10;
+    localparam CMD_READ_INSTR  = 8'h11;
+    localparam CMD_WRITE_DATA  = 8'h20;
+    localparam CMD_READ_DATA   = 8'h21;
+
+    typedef enum logic [1:0] {
         CMD,
         ADDR_HI,
         ADDR_LO,
@@ -68,51 +66,38 @@ module spi_isp(
     logic [7:0]  out_shift_reg;
     logic        miso_out;
 
-    initial begin
-        state = IDLE;
-        bit_cnt = 3'b0;
-        shift_reg = 8'b0;
-        cmd_reg = 8'b0;
-        addr_reg = 16'b0;
-        data_hi = 8'b0;
-        word_half = 1'b0;
-        out_shift_reg = 8'b0;
-        miso_out = 1'b0;
-    end
-
     assign spi_miso = (isp_mode) ? miso_out : 1'bz;
     assign instr_mem_addr = addr_reg;
     assign data_mem_addr  = addr_reg;
 
     always_ff @(posedge clk) begin
-        if (!isp_mode) begin
+        if (!cs_active) begin
+            // Synchronous reset when CS is high
             state <= CMD;
             bit_cnt <= 3'b000;
+            shift_reg <= 8'b0;
+            cmd_reg <= 8'b0;
+            addr_reg <= 16'b0;
+            data_hi <= 8'b0;
+            word_half <= 1'b0;
+            out_shift_reg <= 8'b0;
+            miso_out <= 1'b0;
             instr_mem_wr_en <= 1'b0;
             data_mem_wr_en <= 1'b0;
-            word_half <= 1'b0;
-            shift_reg <= 8'b0;
-            miso_out <= 1'b0;
-            out_shift_reg <= 8'b0;
         end else begin
             // Default write enables to 0 (pulse for 1 clock cycle only)
             instr_mem_wr_en <= 1'b0;
             data_mem_wr_en <= 1'b0;
-
-            if (sck_rise) begin
-                shift_reg <= {shift_reg[6:0], mosi_val};
-                bit_cnt <= bit_cnt + 1;
-            end
 
             if (sck_fall) begin
                 // Shift out data on MISO for read commands
                 if (state == DATA_PHASE) begin
                     if (bit_cnt == 3'b000) begin
                         // Just entered a new byte, load data from memory
-                        if (cmd_reg == 8'h11) begin // Read Instr (16-bit)
+                        if (cmd_reg == 8'h11) begin // Read Instr Mem
                             miso_out <= (word_half == 1'b0) ? instr_mem_rd_data[15] : instr_mem_rd_data[7];
                             out_shift_reg <= (word_half == 1'b0) ? {instr_mem_rd_data[14:8], 1'b0} : {instr_mem_rd_data[6:0], 1'b0};
-                        end else if (cmd_reg == 8'h21) begin // Read Data (8-bit)
+                        end else if (cmd_reg == 8'h21) begin // Read Data Mem
                             miso_out <= data_mem_rd_data[7];
                             out_shift_reg <= {data_mem_rd_data[6:0], 1'b0};
                         end
@@ -121,6 +106,11 @@ module spi_isp(
                         out_shift_reg <= {out_shift_reg[6:0], 1'b0};
                     end
                 end
+            end
+
+            if (sck_rise) begin
+                shift_reg <= {shift_reg[6:0], mosi_val};
+                bit_cnt <= bit_cnt + 1;
             end
 
             if (sck_rise && bit_cnt == 3'b111) begin
@@ -141,23 +131,23 @@ module spi_isp(
                         word_half <= 1'b0;
                     end
                     DATA_PHASE: begin
-                        if (cmd_reg == 8'h10) begin // Write Instr Mem
+                        if (cmd_reg == CMD_WRITE_INSTR) begin
                             if (word_half == 1'b0) begin
                                 data_hi <= rcv_byte;
                                 word_half <= 1'b1;
                             end else begin
                                 instr_mem_wr_data <= {data_hi, rcv_byte};
                                 instr_mem_wr_en <= 1'b1;
-                                addr_reg <= addr_reg + 1;
+                                addr_reg <= addr_reg + 1; // auto-increment
                                 word_half <= 1'b0;
                             end
                         end
-                        else if (cmd_reg == 8'h20) begin // Write Data Mem
+                        else if (cmd_reg == CMD_WRITE_DATA) begin
                             data_mem_wr_data <= rcv_byte;
                             data_mem_wr_en <= 1'b1;
                             addr_reg <= addr_reg + 1;
                         end
-                        else if (cmd_reg == 8'h11) begin // Read Instr Mem
+                        else if (cmd_reg == CMD_READ_INSTR) begin
                             if (word_half == 1'b1) begin
                                 addr_reg <= addr_reg + 1;
                                 word_half <= 1'b0;
@@ -165,7 +155,7 @@ module spi_isp(
                                 word_half <= 1'b1;
                             end
                         end
-                        else if (cmd_reg == 8'h21) begin // Read Data Mem
+                        else if (cmd_reg == CMD_READ_DATA) begin
                             addr_reg <= addr_reg + 1;
                         end
                     end
@@ -173,4 +163,5 @@ module spi_isp(
             end
         end
     end
+
 endmodule
