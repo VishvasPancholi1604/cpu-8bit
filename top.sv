@@ -41,8 +41,9 @@ module top;
 
     task spi_program_instr_mem(input string hex_file);
         logic [15:0] mem_data [0:65535];
-        int num_words = 0;
+        int num_words;
         logic [7:0] dummy_rx;
+        num_words = 0;
         
         // Read hex file into temporary memory
         $readmemh(hex_file, mem_data);

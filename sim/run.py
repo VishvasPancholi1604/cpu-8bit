@@ -128,7 +128,11 @@ def main():
         command = f'xrun -xmlibdirname {compile_file_path} -R +HEX_FILE=\"{selected_hex}\"'
     if args.waves:
         command += f' -input {shm_path} -access +rwc'
-    _, output = terminal(command)
+    ret_code, output = terminal(command)
+    if ret_code != 0:
+        print(f"Error: command failed with return code {ret_code}")
+        sys.exit(ret_code)
+    
     if args.waves:
         if not os.path.exists(waves_dir):
             print(f'could not locate waveforms at waveform dir: {waves_dir}')
