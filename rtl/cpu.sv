@@ -1,6 +1,11 @@
 module cpu(
     input logic clk,
-    input logic rst_n
+    input logic rst_n,
+    // SPI ISP Interface
+    input logic spi_sck,
+    input logic spi_mosi,
+    output logic spi_miso,
+    input logic spi_cs_n
 );
     reg ctrl_pc_load_en;
     reg ctrl_pc_count_en;
@@ -52,6 +57,36 @@ module cpu(
     reg instr_mem_wr_en;
     reg[15:0] instr_mem_data;
 
+    // ISP signals
+    logic isp_mode;
+    logic [15:0] isp_instr_mem_addr;
+    logic [15:0] isp_instr_mem_wr_data;
+    logic        isp_instr_mem_wr_en;
+    logic [15:0] isp_instr_mem_rd_data;
+    
+    logic [15:0] isp_data_mem_addr;
+    logic [7:0]  isp_data_mem_wr_data;
+    logic        isp_data_mem_wr_en;
+    logic [7:0]  isp_data_mem_rd_data;
+
+    spi_isp u_spi_isp(
+        .clk(clk),
+        .rst_n(rst_n),
+        .spi_sck(spi_sck),
+        .spi_mosi(spi_mosi),
+        .spi_miso(spi_miso),
+        .spi_cs_n(spi_cs_n),
+        .isp_mode(isp_mode),
+        .instr_mem_addr(isp_instr_mem_addr),
+        .instr_mem_wr_data(isp_instr_mem_wr_data),
+        .instr_mem_wr_en(isp_instr_mem_wr_en),
+        .instr_mem_rd_data(isp_instr_mem_rd_data),
+        .data_mem_addr(isp_data_mem_addr),
+        .data_mem_wr_data(isp_data_mem_wr_data),
+        .data_mem_wr_en(isp_data_mem_wr_en),
+        .data_mem_rd_data(isp_data_mem_rd_data)
+    );
+
     program_counter u_pc(
         .i_clk(clk),
         .i_rst_n(rst_n),
@@ -63,19 +98,23 @@ module cpu(
 
     cpu_memory#(.MEM_WIDTH(16), .MEM_LENGTH(65536)) u_instruction_memory(
         .i_clk(clk),
-        .i_mem_addr(pc_addr_bus),
-        .i_mem_wr_en(instr_mem_wr_en),
-        .i_mem_wr_data(instr_mem_data),
+        .i_mem_addr(isp_mode ? isp_instr_mem_addr : pc_addr_bus),
+        .i_mem_wr_en(isp_mode ? isp_instr_mem_wr_en : instr_mem_wr_en),
+        .i_mem_wr_data(isp_mode ? isp_instr_mem_wr_data : instr_mem_data),
         .o_mem_data(mem_instr_data)
     );
 
+    assign isp_instr_mem_rd_data = mem_instr_data;
+
     cpu_memory#(.MEM_WIDTH(8), .MEM_LENGTH(65536)) u_data_memory(
         .i_clk(clk),
-        .i_mem_addr(data_mem_addr),
-        .i_mem_wr_en(ctrl_data_mem_wr_en),
-        .i_mem_wr_data(data_mem_in_data),
+        .i_mem_addr(isp_mode ? isp_data_mem_addr : data_mem_addr),
+        .i_mem_wr_en(isp_mode ? isp_data_mem_wr_en : ctrl_data_mem_wr_en),
+        .i_mem_wr_data(isp_mode ? isp_data_mem_wr_data : data_mem_in_data),
         .o_mem_data(data_mem_rd_data)
     );
+
+    assign isp_data_mem_rd_data = data_mem_rd_data;
 
     instruction_decoder u_instr_decode(
         .i_cpu_instruction(instr_reg),
