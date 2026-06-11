@@ -2,6 +2,9 @@ module registers(
     input logic i_clk,
     input logic i_reg_wr_en,
     input logic i_status_wr_en,
+    input logic i_status_pop_en,
+    input logic i_status_i_set,
+    input logic i_status_i_clr,
     input cpu_registers_e i_src_addr,
     input cpu_registers_e i_dest_addr,
     input logic[7:0] i_reg_write_data,
@@ -22,7 +25,13 @@ module registers(
             registers[int'(i_dest_addr)] <= i_reg_write_data;
         end
         if(i_status_wr_en) begin
+            status_reg <= {status_reg[7:2], i_status_write_data[1:0]};
+        end else if(i_status_pop_en) begin
             status_reg <= i_status_write_data;
+        end else if(i_status_i_set) begin
+            status_reg[7] <= 1'b1;
+        end else if(i_status_i_clr) begin
+            status_reg[7] <= 1'b0;
         end
         o_dest_reg_data <= registers[int'(i_dest_addr)];
         o_src_reg_data  <= registers[int'(i_src_addr)];

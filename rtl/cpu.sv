@@ -1,6 +1,7 @@
 module cpu(
     input logic clk,
-    input logic rst_n
+    input logic rst_n,
+    input logic[7:0] irq
 );
     reg ctrl_pc_load_en;
     reg ctrl_pc_count_en;
@@ -36,10 +37,34 @@ module cpu(
     reg[15:0] data_mem_addr;
     reg[7:0] data_mem_in_data;
     reg[7:0] data_mem_rd_data;
-    reg ctrl_reg_bus_mux;
     reg ctrl_reg_bus_dir;
     reg ctrl_reg_file_transfer;
     reg ctrl_load_pc_ind_en;
+
+    // interrupt signals
+    logic irq_req;
+    logic [15:0] irq_vector;
+    logic ctrl_status_pop_en;
+    logic ctrl_status_i_set;
+    logic ctrl_status_i_clr;
+    logic ctrl_pc_load_irq_en;
+    logic ctrl_push_flags_en;
+
+    always_comb begin
+        irq_req = 1'b1;
+        if (irq[0]) irq_vector = 16'h0002;
+        else if (irq[1]) irq_vector = 16'h0004;
+        else if (irq[2]) irq_vector = 16'h0006;
+        else if (irq[3]) irq_vector = 16'h0008;
+        else if (irq[4]) irq_vector = 16'h000A;
+        else if (irq[5]) irq_vector = 16'h000C;
+        else if (irq[6]) irq_vector = 16'h000E;
+        else if (irq[7]) irq_vector = 16'h0010;
+        else begin
+            irq_req = 1'b0;
+            irq_vector = 16'h0000;
+        end
+    end
 
     // stack related variables
     reg[15:0] stack_ptr;
@@ -89,6 +114,9 @@ module cpu(
         .i_clk(clk),
         .i_reg_wr_en(ctrl_reg_wr_en),
         .i_status_wr_en(ctrl_status_update_en),
+        .i_status_pop_en(ctrl_status_pop_en),
+        .i_status_i_set(ctrl_status_i_set),
+        .i_status_i_clr(ctrl_status_i_clr),
         .i_src_addr(dec_src_addr), 
         .i_dest_addr(dec_dest_addr),
         .i_reg_write_data(reg_wr_data),
@@ -114,6 +142,7 @@ module cpu(
         .i_rst_n(rst_n),
         .i_instr_opcode(dec_opcode),
         .i_status_reg(rf_status_reg),
+        .i_irq_req(irq_req),
         .o_instr_alu_operation(ctrl_alu_operation),
         .o_pc_count_en(ctrl_pc_count_en),
         .o_reg_file_write_en(ctrl_reg_wr_en),
@@ -121,10 +150,15 @@ module cpu(
         .o_reg_bus_direct(ctrl_reg_bus_dir),
         .o_ctrl_reg_file_transfer(ctrl_reg_file_transfer),
         .o_status_flag_update_en(ctrl_status_update_en),
+        .o_status_pop_en(ctrl_status_pop_en),
+        .o_status_i_set(ctrl_status_i_set),
+        .o_status_i_clr(ctrl_status_i_clr),
         .o_data_mem_wr_en(ctrl_data_mem_wr_en),
         .o_data_mem_wr_ind_en(ctrl_data_mem_wr_ind_en),
         .o_pc_load_en(ctrl_pc_load_en),
         .o_pc_load_ind_en(ctrl_load_pc_ind_en),
+        .o_pc_load_irq_en(ctrl_pc_load_irq_en),
+        .o_push_flags_en(ctrl_push_flags_en),
         .o_load_stack_en(ctrl_load_stack_en),
         .o_decr_stack(ctrl_decr_stack),
         .o_incr_stack(ctrl_incr_stack),
@@ -136,9 +170,9 @@ module cpu(
 
     assign alu_status_bus = {6'b0, alu_out_carry, alu_out_zero};
     assign reg_wr_data = (ctrl_reg_bus_mux===1) ? ((ctrl_reg_bus_dir===1) ? data_mem_rd_data : dec_imm_data) : ((ctrl_reg_file_transfer) ? rf_src_data : alu_out_data);
-    assign data_mem_in_data = (ctrl_pc_field_sel[1]===0) ? rf_dest_data : ((ctrl_pc_field_sel[0]===1) ? pc_addr_bus[15:8] : pc_addr_bus[7:0]);
+    assign data_mem_in_data = ctrl_push_flags_en ? rf_status_reg : ((ctrl_pc_field_sel[1]===0) ? rf_dest_data : ((ctrl_pc_field_sel[0]===1) ? pc_addr_bus[15:8] : pc_addr_bus[7:0]));
     assign data_mem_addr = (ctrl_decr_stack===1) ? (stack_ptr-1) : ((ctrl_incr_stack===1) ? (stack_ptr) : (ctrl_data_mem_wr_ind_en ? (rf_indirect_addr) : ({8'b0, dec_imm_data})));
-    assign pc_next_addr = (ctrl_pc_field_sel[1]===0) ? (ctrl_load_pc_ind_en ? rf_indirect_addr : {8'b0, dec_imm_data}) : (pc_return_addr);
+    assign pc_next_addr = ctrl_pc_load_irq_en ? irq_vector : ((ctrl_pc_field_sel[1]===0) ? (ctrl_load_pc_ind_en ? rf_indirect_addr : {8'b0, dec_imm_data}) : (pc_return_addr));
     
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin

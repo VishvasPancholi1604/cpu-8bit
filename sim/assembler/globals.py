@@ -43,4 +43,9 @@ INSTRUCTION_MAP = {
     "CALL_IND": {"fmt": 5, "op": 0b0111},
     "RET": {"fmt": 5, "op": 0b1000},
     "HALT": {"fmt": 5, "op": 0b1001},
+    "RETI": {"fmt": 5, "op": 0b1010},
+    "SEI": {"fmt": 5, "op": 0b1011},
+    "CLI": {"fmt": 5, "op": 0b1100},
+    "PUSH_FLAGS": {"fmt": 5, "op": 0b1101},
+    "POP_FLAGS": {"fmt": 5, "op": 0b1110},
 }

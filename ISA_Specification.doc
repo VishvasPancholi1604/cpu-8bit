@@ -1,0 +1,473 @@
+
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid black; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
+    code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+    pre { background-color: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+</style>
+</head>
+<body>
+<h1>Custom 8-bit CPU ISA Specification</h1>
+<h2>1. Architecture Overview</h2>
+<p>The Custom 8-bit CPU is a Harvard-architecture processor with separate memory spaces for instructions and data. </p>
+<ul>
+<li><strong>Data Width</strong>: 8-bit (ALU, Data Memory, and General Purpose Registers are all 8-bit wide).</li>
+<li><strong>Instruction Width</strong>: 16-bit.</li>
+<li><strong>Address Space</strong>: 16-bit addressing, capable of addressing $2^{16}$ (65536) words of instruction memory and $2^{16}$ bytes of data memory.</li>
+<li><strong>Endianness</strong>: The architecture handles operations primarily as 8-bit bytes. For 16-bit values like the Program Counter and addresses, they are logically represented as continuous 16-bit fields. For operations involving 16-bit addresses stored in the register file, <code>REG31</code> holds the upper 8 bits (high byte) and <code>REG30</code> holds the lower 8 bits (low byte).</li>
+</ul>
+<hr />
+<h2>2. Register File</h2>
+<p>The CPU contains 32 general-purpose registers and a few special-purpose registers.</p>
+<h3>2.1 General Purpose Registers</h3>
+<ul>
+<li><strong>REG0 - REG31</strong>: Thirty-two 8-bit general-purpose registers available for computation and data movement.</li>
+<li><strong>Indirect Address Register</strong>: The register pair <code>[REG31:REG30]</code> forms a 16-bit pointer used for indirect addressing. <code>REG31</code> acts as the high byte, and <code>REG30</code> acts as the low byte. Whenever an indirect memory instruction (e.g., <code>LOAD_IND</code>, <code>STORE_IND</code>, <code>JMP_IND</code>) is executed, the address accessed is read from <code>{REG31, REG30}</code>.</li>
+</ul>
+<h3>2.2 Special Function Registers</h3>
+<ul>
+<li><strong>PC (Program Counter)</strong>: 16-bit register holding the address of the currently executing instruction.</li>
+<li><strong>SP (Stack Pointer)</strong>: 16-bit register pointing to the top of the stack in data memory. It is initialized to <code>0xFFFF</code> upon a hardware reset. The stack grows downwards (decrements on <code>PUSH</code>, increments on <code>POP</code>).</li>
+<li><strong>FLAGS (Status Register)</strong>: 8-bit register containing ALU condition codes.</li>
+<li><strong>Bit 1 (Carry - C)</strong>: Set if the last arithmetic operation produced a carry/borrow.</li>
+<li><strong>Bit 0 (Zero - Z)</strong>: Set if the result of the last arithmetic or logical operation was exactly zero.</li>
+<li>Bits [7:2] are reserved (currently hardcoded to 0).</li>
+</ul>
+<hr />
+<h2>3. Memory Model</h2>
+<ul>
+<li><strong>Instruction Memory</strong>: $64K \times 16\text{-bit}$. Stores the application code. It is addressed exclusively by the 16-bit Program Counter (PC).</li>
+<li><strong>Data Memory</strong>: $64K \times 8\text{-bit}$. Stores variables and the stack. It is addressed via immediate addressing (direct), register indirect addressing (<code>[REG31:REG30]</code>), or the Stack Pointer (<code>SP</code>).</li>
+</ul>
+<hr />
+<h2>4. Instruction Formats</h2>
+<p>Instructions are fixed at 16-bits. The instruction decoder identifies the instruction type based on the uppermost bits, resulting in 5 distinct encoding formats.</p>
+<h3>Format 1: Immediate &amp; Direct Data</h3>
+<p>Used for operations involving a register and an 8-bit immediate value or direct data address.
+<em>Condition:</em> <code>[15:14] != 00</code>
+| 15 : 14 | 13 | 12 : 8 | 7 : 0 |
+| :---: | :---: | :---: | :---: |
+| Opcode | 0 | Dest/Src Register | Immediate Data |</p>
+<h3>Format 2: Register to Register</h3>
+<p>Used for ALU operations and register-to-register transfers.
+<em>Condition:</em> <code>[15:14] == 00</code> AND <code>[13:12] != 11</code>
+| 15 : 14 | 13 : 10 | 9 : 5 | 4 : 0 |
+| :---: | :---: | :---: | :---: |
+| <code>00</code> | Opcode | Dest Register | Src Register |</p>
+<h3>Format 3: Immediate Branch &amp; SP Load</h3>
+<p>Used for direct jumps, calls, and loading the stack pointer with an immediate value.
+<em>Condition:</em> <code>[15:12] == 0011</code> AND <code>[11] == 0</code>
+| 15 : 12 | 11 : 8 | 7 : 0 |
+| :---: | :---: | :---: |
+| <code>0011</code> | Opcode | Immediate Address/Data |</p>
+<h3>Format 4: Register Single-Operand</h3>
+<p>Used for shifts, stack push/pop, and indirect data memory access.
+<em>Condition:</em> <code>[15:9] == 0011100</code>
+| 15 : 9 | 8 : 5 | 4 : 0 |
+| :---: | :---: | :---: |
+| <code>0011100</code> | Opcode | Dest/Src Register |</p>
+<h3>Format 5: Zero-Operand &amp; Indirect Branch</h3>
+<p>Used for halted state, indirect jumps, returns, and NOP.
+<em>Condition:</em> <code>[15:9] == 0011101</code>
+| <code>[15:13]</code>  | <code>[12:8]</code> | <code>[7:0]</code>    |
+| :--- | :--- | :--- |
+| <code>000</code> | Opcode | Empty (<code>0x00</code>) |</p>
+<h3>4.6 Assembler Labels</h3>
+<p>The assembler supports labels for jump addresses. A label is defined by appending a colon <code>:</code> to a word on a single line, or preceding an instruction. Labels can be passed as arguments to jump and branch instructions.
+Example:
+<code>assembly
+LOOP:
+    ADD REG1 REG2
+    JMP LOOP</code></p>
+<hr />
+<h2>5. Instruction Set Reference</h2>
+<h3>5.1 Data Movement</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mnemonic</th>
+<th style="text-align: center;">Format</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Operation</th>
+<th style="text-align: center;">Flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>LOAD_IMM Rd, imm</code></td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Load Immediate</td>
+<td style="text-align: left;"><code>Rd &lt;- imm</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>LOAD_DIR Rd, imm</code></td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Load Direct</td>
+<td style="text-align: left;"><code>Rd &lt;- Mem[imm]</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>STORE_DIR Rs, imm</code></td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Store Direct</td>
+<td style="text-align: left;"><code>Mem[imm] &lt;- Rs</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>LOAD_REG Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Load Register</td>
+<td style="text-align: left;"><code>Rd &lt;- Rs</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>LOAD_IND Rd</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Load Indirect</td>
+<td style="text-align: left;"><code>Rd &lt;- Mem[{REG31, REG30}]</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>STORE_IND Rs</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Store Indirect</td>
+<td style="text-align: left;"><code>Mem[{REG31, REG30}] &lt;- Rs</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>PUSH_FLAGS</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Push Flags</td>
+<td style="text-align: left;"><code>SP &lt;- SP - 1</code>; <code>Mem[SP] &lt;- FLAGS</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POP_FLAGS</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Pop Flags</td>
+<td style="text-align: left;"><code>FLAGS &lt;- Mem[SP]</code>; <code>SP &lt;- SP + 1</code></td>
+<td style="text-align: center;">All</td>
+</tr>
+</tbody>
+</table>
+<h3>5.2 ALU Operations</h3>
+<p><em>All operations update the Zero (Z) flag. All operations except AND, OR, and XOR update the Carry (C) flag. CMP updates flags but does not write back to a register.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mnemonic</th>
+<th style="text-align: center;">Format</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Operation</th>
+<th style="text-align: center;">Flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>ADD Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Add</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd + Rs</code></td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>SUB Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Subtract</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd - Rs</code></td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>CMP Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Compare</td>
+<td style="text-align: left;"><code>Rd - Rs</code> (Flags only)</td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>AND Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Bitwise AND</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd &amp; Rs</code></td>
+<td style="text-align: center;">Z</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>OR Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Bitwise OR</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd | Rs</code></td>
+<td style="text-align: center;">Z</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>XOR Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Bitwise XOR</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd ^ Rs</code></td>
+<td style="text-align: center;">Z</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>LSL Rd</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Logical Shift Left</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd &lt;&lt; 1</code></td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>LSR Rd</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Logical Shift Right</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd &gt;&gt; 1</code></td>
+<td style="text-align: center;">Z</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>INC Rd</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Increment</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd + 1</code></td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>DEC Rd</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Decrement</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd - 1</code></td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>MUL Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Multiply (Unimplemented)</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd * Rs</code></td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>DIV Rd, Rs</code></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Divide (Unimplemented)</td>
+<td style="text-align: left;"><code>Rd &lt;- Rd / Rs</code></td>
+<td style="text-align: center;">Z, C</td>
+</tr>
+</tbody>
+</table>
+<h3>5.3 Stack Operations</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mnemonic</th>
+<th style="text-align: center;">Format</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Operation</th>
+<th style="text-align: center;">Flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>LOAD_SP imm</code></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Load SP Immediate</td>
+<td style="text-align: left;"><code>SP &lt;- imm</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>LOAD_SP_IND</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Load SP Indirect</td>
+<td style="text-align: left;"><code>SP &lt;- {REG31, REG30}</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>PUSH Rs</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Push to Stack</td>
+<td style="text-align: left;"><code>SP &lt;- SP - 1</code>; <code>Mem[SP] &lt;- Rs</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POP Rd</code></td>
+<td style="text-align: center;">4</td>
+<td style="text-align: left;">Pop from Stack</td>
+<td style="text-align: left;"><code>Rd &lt;- Mem[SP]</code>; <code>SP &lt;- SP + 1</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+</tbody>
+</table>
+<h3>5.4 Control Flow</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mnemonic</th>
+<th style="text-align: center;">Format</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Operation</th>
+<th style="text-align: center;">Flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>JMP addr</code></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Jump Direct</td>
+<td style="text-align: left;"><code>PC &lt;- addr</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JZ addr</code></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Jump if Zero</td>
+<td style="text-align: left;"><code>if(Z == 1) PC &lt;- addr</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JNZ addr</code></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Jump if Not Zero</td>
+<td style="text-align: left;"><code>if(Z == 0) PC &lt;- addr</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JC addr</code></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Jump if Carry</td>
+<td style="text-align: left;"><code>if(C == 1) PC &lt;- addr</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JNC addr</code></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Jump if No Carry</td>
+<td style="text-align: left;"><code>if(C == 0) PC &lt;- addr</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>CALL addr</code></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Call Subroutine</td>
+<td style="text-align: left;"><code>Push(PC_High)</code>; <code>Push(PC_Low)</code>; <code>PC &lt;- addr</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>RET</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Return from Subroutine</td>
+<td style="text-align: left;"><code>PC_Low &lt;- Pop()</code>; <code>PC_High &lt;- Pop()</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JMP_IND</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Jump Indirect</td>
+<td style="text-align: left;"><code>PC &lt;- {REG31, REG30}</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JZ_IND</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Jump Indirect if Zero</td>
+<td style="text-align: left;"><code>if(Z == 1) PC &lt;- {REG31, REG30}</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JNZ_IND</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Jump Ind. if Not Zero</td>
+<td style="text-align: left;"><code>if(Z == 0) PC &lt;- {REG31, REG30}</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JC_IND</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Jump Indirect if Carry</td>
+<td style="text-align: left;"><code>if(C == 1) PC &lt;- {REG31, REG30}</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>JNC_IND</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Jump Ind. if No Carry</td>
+<td style="text-align: left;"><code>if(C == 0) PC &lt;- {REG31, REG30}</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>CALL_IND</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Call Indirect</td>
+<td style="text-align: left;"><code>Push(PC_High)</code>; <code>Push(PC_Low)</code>; <code>PC &lt;- {REG31, REG30}</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>RETI</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Return from Interrupt</td>
+<td style="text-align: left;"><code>PC_Low &lt;- Pop()</code>; <code>PC_High &lt;- Pop()</code>; <code>I &lt;- 1</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+</tbody>
+</table>
+<h3>5.5 System &amp; Interrupt Control</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mnemonic</th>
+<th style="text-align: center;">Format</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Operation</th>
+<th style="text-align: center;">Flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>NOP</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">No Operation</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>HALT</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Halt CPU Execution</td>
+<td style="text-align: left;">CPU Enters HALTED state</td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>SEI</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Set Interrupt Enable</td>
+<td style="text-align: left;"><code>I &lt;- 1</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>CLI</code></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Clear Interrupt Enable</td>
+<td style="text-align: left;"><code>I &lt;- 0</code></td>
+<td style="text-align: center;">-</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>6. Assembly Syntax &amp; Example</h2>
+<p>The default assembler (<code>sim/assembler/assembler.py</code>) expects a space-separated syntax structured as:
+<code>OPCODE DEST_REG SRC_REG_OR_IMM</code></p>
+<h3>Example Program</h3>
+<p>This simple program loads 10 into <code>REG0</code>, 1 into <code>REG1</code>, and creates a decrement loop until <code>REG0</code> is zero.</p>
+<p>```assembly
+// Initialize registers
+LOAD_IMM REG0 10    // REG0 = 10 (Loop counter)
+LOAD_IMM REG1 1     // REG1 = 1 (Decrement value)</p>
+<p>LOOP:
+// Start of the loop
+SUB REG0 REG1       // REG0 = REG0 - REG1, updates Zero flag
+JNZ LOOP            // If Zero flag is 0 (REG0 != 0), jump back to LOOP</p>
+<p>// Loop finished
+HALT                // Halt the CPU
+```</p>
+<p><em>Note: The assembler handles resolving the <code>LOOP</code> label to the correct memory address during compilation.</em></p>
+</body>
+</html>

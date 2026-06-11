@@ -9,6 +9,7 @@
 
 module top;
     bit clk, rst_n;
+    logic [7:0] irq;
     // clk and reset initialization
     // temporary
     always #5 clk = ~clk;
@@ -16,7 +17,8 @@ module top;
 
     cpu u_cpu(
         .clk(clk),
-        .rst_n(rst_n)
+        .rst_n(rst_n),
+        .irq(irq)
     );
 
     initial begin
@@ -24,6 +26,20 @@ module top;
             $display("ERROR: +HEX_FILE=<path> argument not provided.");
             $finish;
         end
+
+        irq = 8'b0;
+        #200; // wait some time for initialization and main loop
+        irq[0] = 1'b1;
+        #10;
+        irq[0] = 1'b0;
+        
+        #300; // wait some time for ISR to finish
+        irq[1] = 1'b1;
+        #10;
+        irq[1] = 1'b0;
+    end
+
+    initial begin
 
         $display("Loading memory from: %s", hex_file_path);
         $readmemh(hex_file_path, u_cpu.u_instruction_memory.memory);

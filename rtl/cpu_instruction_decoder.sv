@@ -72,7 +72,12 @@ module instruction_decoder(
                             4'b0110: o_instr_opcode = JNC_IND;
                             4'b0111: o_instr_opcode = CALL_IND;
                             4'b1000: o_instr_opcode = RET;
-                            4'b1001: o_instr_opcode = HALT; // still have 6 instruction space her
+                            4'b1001: o_instr_opcode = HALT; 
+                            4'b1010: o_instr_opcode = RETI;
+                            4'b1011: o_instr_opcode = SEI;
+                            4'b1100: o_instr_opcode = CLI;
+                            4'b1101: o_instr_opcode = PUSH_FLAGS;
+                            4'b1110: o_instr_opcode = POP_FLAGS;
                             default: $display("invalid value selected: 'b%4b", i_cpu_instruction[8:5]);
                         endcase
                     end else begin

@@ -3,6 +3,7 @@ module control_unit(
     input logic i_rst_n,
     input cpu_opcodes_e i_instr_opcode,
     input logic[7:0] i_status_reg,
+    input logic i_irq_req,
     output cpu_alu_operation_e o_instr_alu_operation,
     output logic o_pc_count_en,
     output logic o_reg_file_write_en,
@@ -10,6 +11,9 @@ module control_unit(
     output logic o_reg_bus_direct,
     output logic o_ctrl_reg_file_transfer,
     output logic o_status_flag_update_en,
+    output logic o_status_pop_en,
+    output logic o_status_i_set,
+    output logic o_status_i_clr,
     output logic o_data_mem_wr_en,
     output logic o_data_mem_wr_ind_en,
     output logic o_pc_load_en,
@@ -19,6 +23,8 @@ module control_unit(
     output logic o_fetch_instr_en,
     output logic o_load_stack_ind_en,
     output logic o_pc_load_ind_en,
+    output logic o_pc_load_irq_en,
+    output logic o_push_flags_en,
     output logic[1:0] o_pc_field_sel,
     output logic o_halt_en
 );
@@ -32,11 +38,14 @@ module control_unit(
     end
     always_comb begin
         case (current_state)
-            FETCH: next_state = DECODE;
+            FETCH: begin
+                if (i_irq_req && i_status_reg[7]) next_state = INT_HI;
+                else next_state = DECODE;
+            end
             DECODE: begin
                 case (i_instr_opcode)
                     CALL, CALL_IND: next_state = CALL_HI;
-                    RET: next_state = RET_LO;
+                    RET, RETI: next_state = RET_LO;
                     default: next_state = EXECUTE;
                 endcase
             end
@@ -50,6 +59,8 @@ module control_unit(
             CALL_LO: next_state = EXECUTE;
             RET_LO: next_state = RET_HI;
             RET_HI: next_state = EXECUTE;
+            INT_HI: next_state = INT_LO;
+            INT_LO: next_state = EXECUTE;
             HALTED: next_state = HALTED;
             default: next_state = FETCH;
         endcase
@@ -61,6 +72,11 @@ module control_unit(
         o_reg_bus_ctrl = 0;
         o_reg_bus_direct = 0;
         o_status_flag_update_en = 0;
+        o_status_pop_en = 0;
+        o_status_i_set = 0;
+        o_status_i_clr = 0;
+        o_pc_load_irq_en = 0;
+        o_push_flags_en = 0;
         o_data_mem_wr_en = 0;
         o_data_mem_wr_ind_en = 0;
         o_pc_load_en = 0;
@@ -75,8 +91,14 @@ module control_unit(
         o_instr_alu_operation = ALU_ADD;
         case (current_state)
             FETCH: begin
-                o_pc_count_en = 1;
-                o_fetch_instr_en = 1;
+                if (i_irq_req && i_status_reg[7]) begin
+                    o_pc_count_en = 0;
+                    o_fetch_instr_en = 0;
+                    o_status_i_clr = 1;
+                end else begin
+                    o_pc_count_en = 1;
+                    o_fetch_instr_en = 1;
+                end
             end
             DECODE: begin
             end
@@ -158,10 +180,23 @@ module control_unit(
                         o_reg_bus_ctrl = 1;
                         o_reg_bus_direct = 1;
                     end
-                    CALL, CALL_IND, RET: begin
+                    CALL, CALL_IND, RET, RETI: begin
                         o_pc_load_en = 1;
                         o_pc_load_ind_en = (i_instr_opcode==CALL_IND) ? 1 : 0;
-                        o_pc_field_sel[1] = (i_instr_opcode==RET) ? 1 : 0;
+                        o_pc_field_sel[1] = (i_instr_opcode==RET || i_instr_opcode==RETI) ? 1 : 0;
+                        if (i_instr_opcode == RETI) o_status_i_set = 1;
+                    end
+                    SEI: o_status_i_set = 1;
+                    CLI: o_status_i_clr = 1;
+                    PUSH_FLAGS: begin
+                        o_decr_stack = 1;
+                        o_data_mem_wr_en = 1;
+                        o_push_flags_en = 1;
+                    end
+                    POP_FLAGS: begin
+                        o_incr_stack = 1;
+                        o_data_mem_wr_en = 0;
+                        o_status_pop_en = 1;
                     end
                     default: begin
                         $display("instruction %s not implemented yet..", i_instr_opcode.name());
@@ -176,6 +211,12 @@ module control_unit(
             RET_LO, RET_HI: begin
                 o_incr_stack = 1;
                 o_pc_field_sel = (current_state == RET_LO) ? 2'b10 : 2'b11;
+            end
+            INT_HI, INT_LO: begin
+                o_data_mem_wr_en = 1;
+                o_decr_stack = 1;
+                o_pc_field_sel = (current_state == INT_HI) ? 2'b11 : 2'b10;
+                if (current_state == INT_LO) o_pc_load_irq_en = 1;
             end
         endcase
     end

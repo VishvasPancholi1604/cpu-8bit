@@ -37,7 +37,12 @@ typedef enum bit[5:0] {
     DIV         = 6'b100001, // YET TO IMPLEMENT
     STORE_DIR   = 6'b100010,
     LOAD_IMM    = 6'b100011,
-    LOAD_DIR    = 6'b100100
+    LOAD_DIR    = 6'b100100,
+    RETI        = 6'b100101,
+    SEI         = 6'b100110,
+    CLI         = 6'b100111,
+    PUSH_FLAGS  = 6'b101000,
+    POP_FLAGS   = 6'b101001
 } cpu_opcodes_e;
 
 typedef enum bit[4:0] {
@@ -75,15 +80,17 @@ typedef enum bit[4:0] {
     REG31  = 5'b11111
 } cpu_registers_e;
 
-typedef enum bit[2:0] {
-    FETCH   = 3'b000,
-    DECODE  = 3'b001,
-    EXECUTE = 3'b010,
-    CALL_HI = 3'b011,
-    CALL_LO = 3'b100,
-    RET_HI  = 3'b101,
-    RET_LO  = 3'b110,
-    HALTED  = 3'b111
+typedef enum bit[3:0] {
+    FETCH   = 4'b0000,
+    DECODE  = 4'b0001,
+    EXECUTE = 4'b0010,
+    CALL_HI = 4'b0011,
+    CALL_LO = 4'b0100,
+    RET_HI  = 4'b0101,
+    RET_LO  = 4'b0110,
+    HALTED  = 4'b0111,
+    INT_HI  = 4'b1000,
+    INT_LO  = 4'b1001
 } cpu_states_e;
 
 typedef enum bit[3:0] {
