@@ -7,6 +7,7 @@ compile_check = True
 def get_args():
     parser = argparse.ArgumentParser(description="Script to automate git version control process.")
     parser.add_argument('-r', '--reset', action='store_true', help="Reset the working directory to the latest branch.")
+    parser.add_argument('-b', '--branch', action='store_true', help="Interactively select or create a branch.")
     parser.add_argument('-p', '--push', action='store_true', help="Push changes to the current branch.")
     parser.add_argument('--push_all', action='store_true', help="Push all changes to the current branch.")
     parser.add_argument('-nc', '--no_comment', action='store_true', help='Commit without any comments.')
@@ -78,6 +79,77 @@ def select_elements_from_list(items):
                 print(f"[*ERROR] Invalid index: {part}")
                 return []
     return [items[i] for i in sorted(selected_indices)]
+
+def switch_branch():
+    print('Fetching latest branches...')
+    terminal('git fetch origin')
+    ret, out, err = terminal('git branch -a')
+    if ret != 0:
+        print(f"[*ERROR] Failed to list branches:\n{err}")
+        return
+        
+    branches = set()
+    for line in out.split('\n'):
+        line = line.strip().replace('* ', '')
+        if not line or '->' in line:
+            continue
+        if line.startswith('remotes/origin/'):
+            line = line.replace('remotes/origin/', '')
+        branches.add(line)
+        
+    branch_list = sorted(list(branches))
+    branch_list.append("[Create a new branch]")
+    
+    print('\nSelect a branch to switch to:')
+    print_list_with_idx(branch_list)
+    selected_idx = get_integer_input("Enter index of the branch", 0, len(branch_list) - 1)
+    
+    if selected_idx is None:
+        print("[*ERROR] Invalid selection.")
+        return
+        
+    target_branch = branch_list[selected_idx]
+    
+    if target_branch == "[Create a new branch]":
+        target_branch = input("Enter new branch name: ").strip()
+        if not target_branch:
+            print("[*ERROR] Branch name cannot be empty.")
+            return
+        checkout_cmd = f"git checkout -b {target_branch}"
+    else:
+        checkout_cmd = f"git checkout {target_branch}"
+        
+    ret, cout, cerr = terminal(checkout_cmd)
+    
+    if ret != 0 and ('commit your changes or stash them' in cerr or 'would be overwritten by checkout' in cerr or 'Please commit your changes' in cerr):
+        print('Unstaged changes detected. Auto-stashing before switching branches...')
+        ret_stash, _, _ = terminal('git stash')
+        if ret_stash == 0:
+            ret_chk, out_chk, err_chk = terminal(checkout_cmd)
+            if ret_chk != 0:
+                print(f"[*ERROR] Failed to switch branch after stash:\n{err_chk}")
+                print('Restoring stashed changes...')
+                terminal('git stash pop')
+                return
+            print(f"[SUCCESS] Switched to branch '{target_branch}'.")
+            print('Restoring stashed changes onto the new branch...')
+            ret_pop, out_pop, err_pop = terminal('git stash pop')
+            if ret_pop != 0:
+                print(f"[*WARNING] Merge conflicts occurred during stash pop. Please resolve manually in your editor.\n{err_pop}")
+            else:
+                print("[SUCCESS] Local changes restored.")
+        else:
+            print("[*ERROR] Failed to stash changes. Branch switch aborted.")
+            return
+    elif ret != 0:
+        print(f"[*ERROR] Failed to switch branches:\n{cerr}")
+        return
+    else:
+        print(f"[SUCCESS] Switched to branch '{target_branch}'.")
+        
+    if branch_list[selected_idx] != "[Create a new branch]":
+        print(f"Pulling latest changes for '{target_branch}'...")
+        terminal(f"git pull origin {target_branch}")
 
 def pull_latest_changes():
     print('Pulling latest changes from remote..')
@@ -181,6 +253,11 @@ dbg_mode = args.debug or dbg_mode
 compile_check = True if args.compile_check else compile_check
 compile_check = False if args.no_compile_check else compile_check
 clean_terminal()
+
+if args.branch:
+    switch_branch()
+    if not (args.pull or args.push or args.push_all or args.ignore or args.reset):
+        sys.exit(0)
 
 if args.pull:
     pull_latest_changes()
