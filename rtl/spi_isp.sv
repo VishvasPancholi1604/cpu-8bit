@@ -25,9 +25,9 @@ module spi_isp(
 );
 
     // Synchronize SPI signals to system clock
-    logic [2:0] sck_sync;
-    logic [2:0] cs_n_sync;
-    logic [1:0] mosi_sync;
+    logic [2:0] sck_sync = 3'b000;
+    logic [2:0] cs_n_sync = 3'b111;
+    logic [1:0] mosi_sync = 3'b00;
 
     // Use pure clock for synchronizers to catch signals even if CPU is in reset
     always_ff @(posedge clk) begin
@@ -52,15 +52,15 @@ module spi_isp(
         DATA_PHASE
     } spi_state_e;
 
-    spi_state_e state;
-    logic [2:0]  bit_cnt;
-    logic [7:0]  shift_reg;
-    logic [7:0]  cmd_reg;
-    logic [15:0] addr_reg;
-    logic [7:0]  data_hi;
-    logic        word_half; 
-    logic [7:0]  out_shift_reg;
-    logic        miso_out;
+    spi_state_e state = IDLE;
+    logic [2:0]  bit_cnt = 3'b0;
+    logic [7:0]  shift_reg = 8'b0;
+    logic [7:0]  cmd_reg = 8'b0;
+    logic [15:0] addr_reg = 16'b0;
+    logic [7:0]  data_hi = 8'b0;
+    logic        word_half = 1'b0; 
+    logic [7:0]  out_shift_reg = 8'b0;
+    logic        miso_out = 1'b0;
 
     assign spi_miso = (isp_mode) ? miso_out : 1'bz;
     assign instr_mem_addr = addr_reg;

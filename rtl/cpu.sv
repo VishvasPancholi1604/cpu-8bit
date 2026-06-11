@@ -54,8 +54,8 @@ module cpu(
     reg ctrl_incr_stack;
 
     // tb signals
-    reg instr_mem_wr_en;
-    reg[15:0] instr_mem_data;
+    reg instr_mem_wr_en = 1'b0;
+    reg[15:0] instr_mem_data = 16'b0;
 
     // ISP signals
     logic isp_mode;
